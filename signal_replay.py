@@ -424,7 +424,7 @@ def _analyze_with_gemini(
     print(f"  -> calling Gemini model {model}", flush=True)
     client = genai.Client(
         api_key=api_key,
-        http_options=types.HttpOptions(timeout=60000),
+        http_options=types.HttpOptions(api_version="v1beta", timeout=60000),
     )
     response = None
     last_exc: Exception | None = None
