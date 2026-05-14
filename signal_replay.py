@@ -422,9 +422,11 @@ def _analyze_with_gemini(
     prompt = _build_gemini_prompt(system_instruction, input_data)
 
     print(f"  -> calling Gemini model {model}", flush=True)
+    # Keep the Gemini client configuration minimal so Cloud Run uses the same
+    # default API routing behavior that works in local smoke tests.
     client = genai.Client(
         api_key=api_key,
-        http_options=types.HttpOptions(api_version="v1beta", timeout=60000),
+        http_options=types.HttpOptions(timeout=60000),
     )
     response = None
     last_exc: Exception | None = None
