@@ -424,13 +424,32 @@ def _analyze_with_gemini(
     system_instruction = _load_system_instruction()
     prompt = _build_gemini_prompt(system_instruction, input_data)
 
-    print(f"  -> calling Gemini model {model}", flush=True)
-    # Keep the Gemini client configuration minimal so Cloud Run uses the same
-    # default API routing behavior that works in local smoke tests.
-    client = genai.Client(
-        api_key=api_key,
-        http_options=types.HttpOptions(timeout=60000),
-    )
+    backend = os.getenv("GEMINI_BACKEND", "api_key").strip().lower()
+    http_options = types.HttpOptions(timeout=60000)
+    if backend == "vertex":
+        project = (
+            os.getenv("GEMINI_PROJECT", "").strip()
+            or os.getenv("GOOGLE_CLOUD_PROJECT", "").strip()
+            or os.getenv("GCP_PROJECT", "").strip()
+        )
+        location = os.getenv("GEMINI_LOCATION", "global").strip() or "global"
+        if not project:
+            raise RuntimeError(
+                "GEMINI_PROJECT or GOOGLE_CLOUD_PROJECT is missing for GEMINI_BACKEND=vertex."
+            )
+        print(f"  -> calling Gemini model {model} via Vertex AI ({project}/{location})", flush=True)
+        client = genai.Client(
+            vertexai=True,
+            project=project,
+            location=location,
+            http_options=http_options,
+        )
+    else:
+        print(f"  -> calling Gemini model {model} via API key", flush=True)
+        client = genai.Client(
+            api_key=api_key,
+            http_options=http_options,
+        )
     response = None
     last_exc: Exception | None = None
     for attempt in range(1, max(1, retry_attempts) + 1):
@@ -439,7 +458,7 @@ def _analyze_with_gemini(
             break
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
-            if _looks_like_gemini_bad_request(exc):
+            if backend != "vertex" and _looks_like_gemini_bad_request(exc):
                 print("  -> Gemini SDK returned 400; retrying via REST API...", flush=True)
                 text = _generate_gemini_via_rest(api_key=api_key, model=model, prompt=prompt)
                 parsed = json.loads(_extract_json(text))
