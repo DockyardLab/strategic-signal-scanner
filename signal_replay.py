@@ -13,6 +13,9 @@ import os
 import re
 import sys
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -436,6 +439,11 @@ def _analyze_with_gemini(
             break
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
+            if _looks_like_gemini_bad_request(exc):
+                print("  -> Gemini SDK returned 400; retrying via REST API...", flush=True)
+                text = _generate_gemini_via_rest(api_key=api_key, model=model, prompt=prompt)
+                parsed = json.loads(_extract_json(text))
+                return _normalize_gemini_output(parsed, input_data)
             if not _is_retryable_gemini_error(exc) or attempt >= max(1, retry_attempts):
                 raise
             delay = retry_base_seconds * (2 ** (attempt - 1))
@@ -456,6 +464,71 @@ def _analyze_with_gemini(
         print(text, flush=True)
     parsed = json.loads(_extract_json(text))
     return _normalize_gemini_output(parsed, input_data)
+
+
+def _looks_like_gemini_bad_request(exc: Exception) -> bool:
+    status_code = getattr(exc, "status_code", None)
+    if status_code == 400:
+        return True
+    message = str(exc).lower()
+    return "bad request" in message and "<html>" in message
+
+
+def _generate_gemini_via_rest(*, api_key: str, model: str, prompt: str) -> str:
+    base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model, safe='')}:generateContent"
+    url = f"{base_url}?key={urllib.parse.quote(api_key, safe='')}"
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}],
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0,
+        },
+    }
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            body = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Gemini REST request failed with HTTP {exc.code}: {body}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Gemini REST request failed: {exc}") from exc
+
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Gemini REST response was not JSON: {body}") from exc
+
+    candidates = data.get("candidates") if isinstance(data, dict) else None
+    if isinstance(candidates, list):
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            content = candidate.get("content")
+            if not isinstance(content, dict):
+                continue
+            parts = content.get("parts")
+            if not isinstance(parts, list):
+                continue
+            texts = [
+                str(part.get("text"))
+                for part in parts
+                if isinstance(part, dict) and part.get("text")
+            ]
+            if texts:
+                return "\n".join(texts)
+
+    raise RuntimeError(f"Gemini REST response did not contain text content: {body}")
 
 
 def _build_gemini_prompt(system_instruction: str, input_data: dict[str, Any]) -> str:
