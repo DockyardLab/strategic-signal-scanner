@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Cloud Run Job entrypoint for the Strategic Signal Scanner pipeline."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def main() -> int:
+    output_dir = _env_path("OUTPUT_DIR", "/tmp/artifacts/rss")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _clear_previous_outputs(output_dir)
+
+    group = _env("RUN_GROUP", "cloudrun")
+    score_mode = _env("SCORE_MODE", "gemini")
+    model = _env("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+    items_per_feed = _env("ITEMS_PER_FEED", "1")
+    max_articles = _env("MAX_ARTICLES", "30")
+    retry_attempts = _env("RETRY_ATTEMPTS", "5")
+    max_age_days = _env("MAX_AGE_DAYS", "180")
+    ignore_state = _env_bool("IGNORE_STATE", False)
+    report_max_age_days = _env("REPORT_MAX_AGE_DAYS", max_age_days)
+
+    print("Cloud Run Job started.", flush=True)
+    print(f"  output_dir={output_dir}", flush=True)
+    print(f"  group={group}", flush=True)
+    print(f"  score_mode={score_mode}", flush=True)
+    print(f"  model={model}", flush=True)
+
+    capture_cmd = [
+        sys.executable,
+        str(SCRIPT_DIR / "capture_and_score.py"),
+        "--group",
+        group,
+        "--items-per-feed",
+        items_per_feed,
+        "--max-articles",
+        max_articles,
+        "--output-dir",
+        str(output_dir),
+        "--score-mode",
+        score_mode,
+        "--model",
+        model,
+        "--retry-attempts",
+        retry_attempts,
+    ]
+    if ignore_state:
+        capture_cmd.append("--ignore-state")
+
+    _run(capture_cmd, cwd=SCRIPT_DIR)
+
+    scored_files = sorted(output_dir.glob("scored_*.json"), key=lambda p: p.stat().st_mtime)
+    if not scored_files:
+        print(f"No scored_*.json found in {output_dir}", file=sys.stderr)
+        return 1
+
+    scored_path = scored_files[-1]
+    report_path = output_dir / scored_path.name.replace("scored_", "report_", 1).replace(".json", ".html")
+
+    build_report_cmd = [
+        sys.executable,
+        str(SCRIPT_DIR / "build_report.py"),
+        "--scored-file",
+        str(scored_path),
+        "--output",
+        str(report_path),
+        "--max-age-days",
+        report_max_age_days,
+    ]
+    _run(build_report_cmd, cwd=SCRIPT_DIR)
+
+    build_archive_cmd = [
+        sys.executable,
+        str(SCRIPT_DIR / "build_archive.py"),
+        "--artifact-dir",
+        str(output_dir),
+        "--output",
+        str(output_dir / "archive_index.html"),
+        "--max-age-days",
+        max_age_days,
+    ]
+    _run(build_archive_cmd, cwd=SCRIPT_DIR)
+
+    bucket = _env("ARCHIVE_BUCKET", "")
+    prefix = _env("ARCHIVE_PREFIX", "signal-archive").strip("/")
+    if bucket:
+        _upload_artifacts(output_dir, bucket, prefix)
+    else:
+        print("ARCHIVE_BUCKET not set; keeping artifacts local only.", flush=True)
+
+    print("Cloud Run Job finished successfully.", flush=True)
+    return 0
+
+
+def _env(name: str, default: str = "") -> str:
+    value = os.getenv(name, default)
+    return value.strip() if isinstance(value, str) else default
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = _env(name, "true" if default else "false").lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _env_path(name: str, default: str) -> Path:
+    value = _env(name, default)
+    path = Path(value)
+    return path if path.is_absolute() else (SCRIPT_DIR / path)
+
+
+def _clear_previous_outputs(output_dir: Path) -> None:
+    patterns = ("raw_*.json", "scored_*.json", "report_*.html", "archive_index.html")
+    for pattern in patterns:
+        for path in output_dir.glob(pattern):
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                continue
+
+
+def _run(cmd: list[str], cwd: Path) -> None:
+    print(f"Running: {' '.join(cmd)}", flush=True)
+    result = subprocess.run(cmd, cwd=str(cwd))
+    if result.returncode != 0:
+        raise SystemExit(result.returncode)
+
+
+def _upload_artifacts(output_dir: Path, bucket_name: str, prefix: str) -> None:
+    try:
+        from google.cloud import storage
+    except ImportError as exc:
+        raise RuntimeError(
+            "google-cloud-storage is required when ARCHIVE_BUCKET is set."
+        ) from exc
+
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    print(f"Uploading artifacts to gs://{bucket_name}/{prefix}/...", flush=True)
+    for path in sorted(output_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(output_dir).as_posix()
+        blob_name = f"{prefix}/{rel}" if prefix else rel
+        blob = bucket.blob(blob_name)
+        blob.cache_control = "no-cache, max-age=0"
+        content_type = _content_type_for(path.suffix.lower())
+        blob.upload_from_filename(str(path), content_type=content_type)
+        print(f"  uploaded {blob_name}", flush=True)
+
+
+def _content_type_for(suffix: str) -> str:
+    return {
+        ".html": "text/html; charset=utf-8",
+        ".json": "application/json; charset=utf-8",
+        ".md": "text/markdown; charset=utf-8",
+        ".svg": "image/svg+xml",
+    }.get(suffix, "application/octet-stream")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

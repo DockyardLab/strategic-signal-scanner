@@ -1,0 +1,16 @@
+{
+  "id": "003_sequoia_huggingface_open_source",
+  "input": {
+    "title": "Spotlight: Clem Delangue",
+    "source": "Sequoia Capital",
+    "date": "2024-05-22",
+    "url": "https://sequoiacap.com/article/clem-delangue-spotlight/",
+    "content": "文章讨论 Hugging Face 的开源 AI 哲学与 AI 民主化趋势，强调降低门槛、促进开发者协作和更容易部署模型。核心观点是开源生态正在重构开发者获取和使用 AI 的方式。"
+  },
+  "expected": {
+    "tier": 2,
+    "signal_type": "AI趋势",
+    "relevance_score": 3
+  },
+  "note": "测模型是否会把开源生态当成高相关信号，但不至于过度拔高成直接业务行动。"
+}

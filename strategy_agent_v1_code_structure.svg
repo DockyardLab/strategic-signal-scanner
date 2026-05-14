@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1120" viewBox="0 0 1680 1120">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Inter","PingFang SC","Microsoft YaHei",sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 16px "Inter","PingFang SC","Microsoft YaHei",sans-serif; fill: #475569; }
+      .section { font: 700 20px "Inter","PingFang SC","Microsoft YaHei",sans-serif; fill: #0f172a; }
+      .label { font: 600 15px "Inter","PingFang SC","Microsoft YaHei",sans-serif; fill: #0f172a; }
+      .small { font: 500 13px "Inter","PingFang SC","Microsoft YaHei",sans-serif; fill: #475569; }
+      .tiny { font: 500 12px "Inter","PingFang SC","Microsoft YaHei",sans-serif; fill: #64748b; }
+      .doneBox { fill: #ffffff; stroke: #1d4ed8; stroke-width: 2; rx: 16; ry: 16; }
+      .doneSoft { fill: #eff6ff; stroke: #60a5fa; stroke-width: 1.5; rx: 14; ry: 14; }
+      .inputBox { fill: #ecfeff; stroke: #06b6d4; stroke-width: 2; rx: 16; ry: 16; }
+      .promptBox { fill: #f5f3ff; stroke: #8b5cf6; stroke-width: 2; rx: 16; ry: 16; }
+      .outputBox { fill: #f0fdf4; stroke: #22c55e; stroke-width: 2; rx: 16; ry: 16; }
+      .pendingFrame { fill: #fff7ed; stroke: #f59e0b; stroke-width: 2.5; stroke-dasharray: 10 8; rx: 22; ry: 22; }
+      .pendingBox { fill: #fffaf0; stroke: #fb923c; stroke-width: 2; stroke-dasharray: 8 6; rx: 16; ry: 16; }
+      .legacyBox { fill: #f8fafc; stroke: #94a3b8; stroke-width: 2; stroke-dasharray: 8 6; rx: 16; ry: 16; }
+      .arrow { stroke: #334155; stroke-width: 2.2; fill: none; marker-end: url(#arrowHead); }
+      .arrowBlue { stroke: #2563eb; stroke-width: 2.4; fill: none; marker-end: url(#arrowHeadBlue); }
+      .arrowGreen { stroke: #16a34a; stroke-width: 2.4; fill: none; marker-end: url(#arrowHeadGreen); }
+      .arrowOrange { stroke: #d97706; stroke-width: 2.4; fill: none; marker-end: url(#arrowHeadOrange); }
+      .legendDot { stroke-width: 2; rx: 10; ry: 10; }
+    </style>
+    <marker id="arrowHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrowHeadBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowHeadGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrowHeadOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1680" height="1120"/>
+
+  <text class="title" x="60" y="58">Strategic Signal Scanner · Current Code Structure</text>
+  <text class="subtitle" x="60" y="88">Solid boxes = already wired and runnable · Dashed boxes = pending / production work</text>
+
+  <!-- Legend -->
+  <rect x="1330" y="28" width="280" height="88" rx="18" ry="18" fill="#ffffff" stroke="#cbd5e1"/>
+  <rect class="legendDot" x="1350" y="46" width="28" height="18" fill="#ffffff" stroke="#1d4ed8"/>
+  <text class="small" x="1392" y="61">Completed / runnable</text>
+  <rect class="legendDot" x="1350" y="76" width="28" height="18" fill="#fff7ed" stroke="#f59e0b" stroke-dasharray="8 6"/>
+  <text class="small" x="1392" y="91">Pending / to be done</text>
+
+  <!-- LEFT: current v1 -->
+  <text class="section" x="60" y="138">1. 当前可运行的最小版本</text>
+  <rect x="40" y="156" width="980" height="860" rx="24" ry="24" fill="#ffffff" stroke="#cbd5e1"/>
+
+  <!-- Inputs -->
+  <rect class="inputBox" x="80" y="210" width="210" height="92"/>
+  <text class="label" x="100" y="242">.env</text>
+  <text class="tiny" x="100" y="266">GEMINI_API_KEY</text>
+  <text class="tiny" x="100" y="286">GEMINI_MODEL / retry</text>
+
+  <rect class="promptBox" x="80" y="338" width="210" height="92"/>
+  <text class="label" x="100" y="370">system_instruction.md</text>
+  <text class="tiny" x="100" y="394">完整 System Instruction</text>
+  <text class="tiny" x="100" y="414">Rosy 业务边界 / 打分规则</text>
+
+  <rect class="doneSoft" x="80" y="466" width="210" height="92"/>
+  <text class="label" x="100" y="498">samples/*.json</text>
+  <text class="tiny" x="100" y="522">最小样本输入</text>
+  <text class="tiny" x="100" y="542">McKinsey / Goldman / Sequoia</text>
+
+  <rect class="legacyBox" x="80" y="592" width="210" height="92"/>
+  <text class="label" x="100" y="624">signal_replay.md</text>
+  <text class="tiny" x="100" y="648">最小测试说明</text>
+  <text class="tiny" x="100" y="668">怎么跑 / 怎么看结果</text>
+
+  <!-- Core orchestrator -->
+  <rect class="doneBox" x="360" y="300" width="280" height="190"/>
+  <text class="label" x="386" y="340">signal_replay.py</text>
+  <text class="tiny" x="386" y="366">本地回放主入口</text>
+  <text class="tiny" x="386" y="388">- 读 .env</text>
+  <text class="tiny" x="386" y="410">- 读 system_instruction.md</text>
+  <text class="tiny" x="386" y="432">- 读 samples/*.json</text>
+  <text class="tiny" x="386" y="454">- mock / gemini / print-prompt</text>
+
+  <rect class="doneSoft" x="380" y="522" width="240" height="84"/>
+  <text class="label" x="404" y="554">mock mode</text>
+  <text class="tiny" x="404" y="578">零 token，本地打分</text>
+
+  <rect class="doneSoft" x="650" y="522" width="300" height="84"/>
+  <text class="label" x="676" y="554">gemini mode</text>
+  <text class="tiny" x="676" y="578">google-genai + Gemini 3.1 Flash Lite</text>
+
+  <rect class="outputBox" x="380" y="680" width="240" height="96"/>
+  <text class="label" x="404" y="712">Text report / JSON</text>
+  <text class="tiny" x="404" y="736">对比 expected vs actual</text>
+  <text class="tiny" x="404" y="756">打印 reason / key_signal</text>
+
+  <rect class="outputBox" x="650" y="680" width="300" height="96"/>
+  <text class="label" x="676" y="712">Actual Gemini output</text>
+  <text class="tiny" x="676" y="736">先解析 {"items":[...]} </text>
+  <text class="tiny" x="676" y="756">再展开成单条结果</text>
+
+  <!-- arrows left -->
+  <path class="arrowBlue" d="M 290 256 C 320 256, 330 300, 360 344"/>
+  <path class="arrowBlue" d="M 290 384 C 320 384, 330 360, 360 372"/>
+  <path class="arrowBlue" d="M 290 512 C 320 512, 336 470, 360 430"/>
+  <path class="arrow" d="M 290 638 C 324 638, 340 556, 360 460"/>
+  <path class="arrow" d="M 500 490 C 500 506, 500 512, 500 522"/>
+  <path class="arrow" d="M 640 395 C 660 395, 650 486, 650 522"/>
+  <path class="arrowGreen" d="M 500 606 C 500 642, 500 650, 500 680"/>
+  <path class="arrowGreen" d="M 800 606 C 800 642, 800 650, 800 680"/>
+  <path class="arrow" d="M 620 728 C 640 728, 645 728, 650 728"/>
+
+  <!-- annotations -->
+  <text class="tiny" x="356" y="278">inputs</text>
+  <text class="tiny" x="648" y="516">calls</text>
+  <text class="tiny" x="603" y="668">results</text>
+
+  <!-- status pill -->
+  <rect x="360" y="228" width="590" height="42" rx="16" ry="16" fill="#eff6ff" stroke="#93c5fd"/>
+  <text class="small" x="382" y="255">当前已经可跑：mock 模式 0 token，gemini 模式读取本地 System Instruction，并支持单条 / 批量回放。</text>
+
+  <!-- RIGHT: pending production -->
+  <text class="section" x="1070" y="138">2. 待完成的生产化版本</text>
+  <rect class="pendingFrame" x="1060" y="156" width="580" height="860"/>
+  <text class="label" x="1092" y="198" fill="#b45309">待完成 / 生产化</text>
+  <text class="small" x="1092" y="224" fill="#b45309">这些模块现在还不是主线，但需要在后续版本补齐。</text>
+
+  <rect class="pendingBox" x="1100" y="260" width="210" height="86"/>
+  <text class="label" x="1120" y="292">RSS / Web Sources</text>
+  <text class="tiny" x="1120" y="316">真实抓取最新文章</text>
+  <text class="tiny" x="1120" y="336">待接入 feed / scrape</text>
+
+  <rect class="pendingBox" x="1340" y="260" width="250" height="86"/>
+  <text class="label" x="1360" y="292">Fetcher</text>
+  <text class="tiny" x="1360" y="316">抓取、清洗、标准化</text>
+  <text class="tiny" x="1360" y="336">待和真实来源连接</text>
+
+  <path class="arrowOrange" d="M 1310 303 C 1320 303, 1330 303, 1340 303"/>
+
+  <rect class="pendingBox" x="1100" y="390" width="210" height="86"/>
+  <text class="label" x="1120" y="422">Analyzer</text>
+  <text class="tiny" x="1120" y="446">真实评分 / 过滤</text>
+  <text class="tiny" x="1120" y="466">待接生产 prompt</text>
+
+  <rect class="pendingBox" x="1340" y="390" width="250" height="86"/>
+  <text class="label" x="1360" y="422">Renderer</text>
+  <text class="tiny" x="1360" y="446">周报 / 页面输出</text>
+  <text class="tiny" x="1360" y="466">待生成邮件与归档视图</text>
+
+  <path class="arrowOrange" d="M 1310 433 C 1320 433, 1330 433, 1340 433"/>
+
+  <rect class="pendingBox" x="1100" y="520" width="210" height="86"/>
+  <text class="label" x="1120" y="552">Gmail / Email</text>
+  <text class="tiny" x="1120" y="576">自动发送周报</text>
+  <text class="tiny" x="1120" y="596">待生产级 OAuth</text>
+
+  <rect class="pendingBox" x="1340" y="520" width="250" height="86"/>
+  <text class="label" x="1360" y="552">Firestore / Archive</text>
+  <text class="tiny" x="1360" y="576">去重、历史归档</text>
+  <text class="tiny" x="1360" y="596">待数据落库</text>
+
+  <path class="arrowOrange" d="M 1310 563 C 1320 563, 1330 563, 1340 563"/>
+
+  <rect class="pendingBox" x="1100" y="650" width="210" height="86"/>
+  <text class="label" x="1120" y="682">Cloud Run</text>
+  <text class="tiny" x="1120" y="706">服务部署</text>
+  <text class="tiny" x="1120" y="726">待上线</text>
+
+  <rect class="pendingBox" x="1340" y="650" width="250" height="86"/>
+  <text class="label" x="1360" y="682">Cloud Scheduler</text>
+  <text class="tiny" x="1360" y="706">定时触发</text>
+  <text class="tiny" x="1360" y="726">待调度接入</text>
+
+  <path class="arrowOrange" d="M 1310 693 C 1320 693, 1330 693, 1340 693"/>
+
+  <rect class="pendingBox" x="1100" y="794" width="490" height="128"/>
+  <text class="label" x="1120" y="826">生产化闭环</text>
+  <text class="tiny" x="1120" y="852">真实来源抓取 → Gemini 评分 → 去重/归档 → 邮件发送 → 定时运行</text>
+  <text class="tiny" x="1120" y="876">这部分是下一阶段要补齐的完整业务流。</text>
+  <text class="tiny" x="1120" y="900">目前主线仍然是本地回放 + prompt 校准。</text>
+
+  <!-- connection from current to pending -->
+  <path class="arrowOrange" d="M 980 758 C 1030 758, 1035 758, 1060 758"/>
+  <text class="tiny" x="1000" y="744" fill="#b45309">next step</text>
+
+  <!-- bottom note -->
+  <rect x="40" y="1038" width="1560" height="48" rx="16" ry="16" fill="#ffffff" stroke="#cbd5e1"/>
+  <text class="small" x="62" y="1068">当前最小版本的主入口是 signal_replay.py；它读取 .env / system_instruction.md / samples/，先做 mock 回放，再可选走 Gemini。待完成区域表示未来要补的生产化链路。</text>
+</svg>

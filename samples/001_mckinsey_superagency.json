@@ -1,0 +1,16 @@
+{
+  "id": "001_mckinsey_superagency",
+  "input": {
+    "title": "Superagency in the workplace: Empowering people to unlock AI’s full potential",
+    "source": "McKinsey & Company",
+    "date": "2025-01-28",
+    "url": "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/superagency-in-the-workplace-empowering-people-to-unlock-ais-full-potential-at-work/",
+    "content": "麦肯锡提出“超级代理（Superagency）”概念，认为企业 AI 应用正在从单点工具使用转向代理式工作流（Agentic Workflows）。重点不是让 AI 替人完成单一任务，而是让人学会定义目标、协调多个 AI 代理并管理复杂流程。"
+  },
+  "expected": {
+    "tier": 2,
+    "signal_type": "AI趋势",
+    "relevance_score": 4
+  },
+  "note": "测是否能抓到从工具到代理工作流的转向，以及是否会落到 Rosy 的 B 端赋能和课程设计。"
+}

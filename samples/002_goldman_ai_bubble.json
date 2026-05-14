@@ -1,0 +1,16 @@
+{
+  "id": "002_goldman_ai_bubble",
+  "input": {
+    "title": "Gen AI: Too much spend, too little benefit?",
+    "source": "Goldman Sachs",
+    "date": "2025-10-28",
+    "url": "https://www.goldmansachs.com/insights/top-of-mind/ai-in-a-bubble",
+    "content": "高盛讨论生成式 AI 的高投入、基础设施成本和生产力回报之间的张力，质疑当前巨额投入是否能真正转化为足够的业务增量。文章核心在于资本市场开始更严格地考核 AI 的经济可行性和实际闭环。"
+  },
+  "expected": {
+    "tier": 1,
+    "signal_type": "行业观察",
+    "relevance_score": 3
+  },
+  "note": "测模型会不会因为 Goldman 和 AI 就自动抬高分数，同时看它能不能保守处理宏观泡沫叙事。"
+}
