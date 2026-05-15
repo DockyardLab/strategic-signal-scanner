@@ -408,12 +408,6 @@ def _analyze_with_gemini(
     retry_attempts: int = 3,
     retry_base_seconds: float = 1.5,
 ) -> dict[str, Any]:
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise RuntimeError(
-            "GEMINI_API_KEY is missing. Put it in a .env file in this folder or export it before running gemini mode."
-        )
-
     try:
         from google import genai
         from google.genai import types
@@ -445,6 +439,11 @@ def _analyze_with_gemini(
             http_options=http_options,
         )
     else:
+        api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        if not api_key:
+            raise RuntimeError(
+                "GEMINI_API_KEY is missing. Put it in a .env file in this folder or export it before running gemini mode."
+            )
         print(f"  -> calling Gemini model {model} via API key", flush=True)
         client = genai.Client(
             api_key=api_key,
