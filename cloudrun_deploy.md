@@ -19,9 +19,9 @@ That is the right fit for the scanner because the workflow is batch-based:
 ## Recommended Cloud Run shape
 
 - **Service type**: Cloud Run Job
-- **Schedule**: later, via Cloud Scheduler on Tuesday + Friday
+- **Schedule**: Cloud Scheduler on Tuesday + Friday
 - **Output store**: Google Cloud Storage bucket
-- **Model scoring**: Gemini API key stored as a Secret
+- **Model scoring**: Vertex AI on Cloud Run
 
 ## Suggested environment variables
 
@@ -44,14 +44,58 @@ If you want a dry local test, switch the score mode to `mock`.
 
 ## Secrets
 
-The scoring step uses a Gemini API key.
-On Cloud Run, store it in Secret Manager and mount it as:
+The Cloud Run job currently supports two backends:
+
+- `vertex` for Cloud Run
+- `api_key` for local / Cloud Shell smoke tests
+
+For the Cloud Run deployment we use Vertex AI, so the job needs:
+
+- `GEMINI_BACKEND=vertex`
+- `GEMINI_PROJECT=strategic-signal-scanner`
+- `GEMINI_LOCATION=global`
+- `GEMINI_MODEL=gemini-2.5-flash-lite`
+
+The `GEMINI_API_KEY` secret can stay mounted for local compatibility, but the Cloud Run job does not rely on it in Vertex mode.
+
+## Email notification
+
+Cloud Run can send a summary email after each successful run by using SMTP.
+
+Recommended environment variables:
 
 ```bash
-GEMINI_API_KEY
+MAIL_BACKEND=smtp
+MAIL_TO=rosy.luo@raygen.ai
+MAIL_FROM='Rosy <your-gmail-address@example.com>'
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USE_TLS=true
+SMTP_USERNAME=your-gmail-address@example.com
+SMTP_PASSWORD=your-gmail-app-password
 ```
 
-The code expects the environment variable name above.
+Notes:
+
+- For Gmail, the simplest path is an **App Password**.
+- Keep `SMTP_PASSWORD` in Secret Manager instead of plain text.
+- The Job will skip email safely if `MAIL_TO` is not set.
+- The message body uses the `Rosy` signature.
+
+Recommended secret setup:
+
+```bash
+gcloud secrets create SMTP_PASSWORD --replication-policy=automatic
+read -s -p "Paste Gmail app password: " SMTP_PASSWORD_VALUE; echo
+printf '%s' "$SMTP_PASSWORD_VALUE" | gcloud secrets versions add SMTP_PASSWORD --data-file=-
+unset SMTP_PASSWORD_VALUE
+```
+
+Then mount it on the Cloud Run Job:
+
+```bash
+--set-secrets SMTP_PASSWORD=SMTP_PASSWORD:latest
+```
 
 ## Storage
 
@@ -69,6 +113,18 @@ The uploaded files keep the same relative layout, so:
 - `raw_YYYY-MM-DD.json`
 
 all stay linkable to each other.
+
+If the bucket is made public, the archive can be accessed directly with:
+
+```text
+https://storage.googleapis.com/strategic-signal-scanner-archive/signal-archive/archive_index.html
+```
+
+and each daily report:
+
+```text
+https://storage.googleapis.com/strategic-signal-scanner-archive/signal-archive/report_YYYY-MM-DD.html
+```
 
 ## Deploy from source
 
@@ -101,9 +157,49 @@ The recommended cadence is:
 - Tuesday
 - Friday
 
-Use the Scheduler to call the Cloud Run Jobs `:run` endpoint with the
-job's service account and OIDC auth.
-This can be added after the first manual job run is verified.
+The Cloud Scheduler job should call the Cloud Run Jobs `:run` endpoint:
+
+```text
+https://run.googleapis.com/v2/projects/strategic-signal-scanner/locations/asia-east1/jobs/strategic-signal-scanner:run
+```
+
+Use a dedicated scheduler service account with `roles/run.invoker` on the job.
+
+Example setup:
+
+```bash
+gcloud services enable cloudscheduler.googleapis.com
+
+gcloud iam service-accounts create signal-archive-scheduler \
+  --display-name="Signal Archive Scheduler"
+
+gcloud run jobs add-iam-policy-binding strategic-signal-scanner \
+  --region asia-east1 \
+  --member="serviceAccount:signal-archive-scheduler@strategic-signal-scanner.iam.gserviceaccount.com" \
+  --role="roles/run.invoker"
+
+gcloud scheduler jobs create http strategic-signal-scanner-schedule \
+  --location asia-east1 \
+  --schedule="0 9 * * 2,5" \
+  --time-zone="Asia/Shanghai" \
+  --uri="https://run.googleapis.com/v2/projects/strategic-signal-scanner/locations/asia-east1/jobs/strategic-signal-scanner:run" \
+  --http-method POST \
+  --oauth-service-account-email="signal-archive-scheduler@strategic-signal-scanner.iam.gserviceaccount.com" \
+  --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
+```
+
+If you want to force a one-off run from Scheduler later, use:
+
+```bash
+gcloud scheduler jobs run strategic-signal-scanner-schedule --location asia-east1
+```
+
+To verify whether the Scheduler job exists:
+
+```bash
+gcloud scheduler jobs list --location asia-east1
+gcloud scheduler jobs describe strategic-signal-scanner-schedule --location asia-east1
+```
 
 ## Local smoke test
 

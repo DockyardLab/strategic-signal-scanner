@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+from mailer import send_notification_email
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -95,6 +98,8 @@ def main() -> int:
     else:
         print("ARCHIVE_BUCKET not set; keeping artifacts local only.", flush=True)
 
+    _send_summary_email(output_dir, bucket, prefix, report_path, scored_path)
+
     print("Cloud Run Job finished successfully.", flush=True)
     return 0
 
@@ -154,6 +159,71 @@ def _upload_artifacts(output_dir: Path, bucket_name: str, prefix: str) -> None:
         content_type = _content_type_for(path.suffix.lower())
         blob.upload_from_filename(str(path), content_type=content_type)
         print(f"  uploaded {blob_name}", flush=True)
+
+
+def _send_summary_email(output_dir: Path, bucket: str, prefix: str, report_path: Path, scored_path: Path) -> None:
+    if not bucket:
+        print("No bucket configured; skipping email summary links to public archive.", flush=True)
+        return
+
+    scored_payload = _load_json(scored_path)
+    date_str = scored_path.stem.replace("scored_", "")
+    archive_url = (
+        f"https://storage.googleapis.com/{bucket}/{prefix}/archive_index.html"
+        if prefix
+        else f"https://storage.googleapis.com/{bucket}/archive_index.html"
+    )
+    report_url = (
+        f"https://storage.googleapis.com/{bucket}/{prefix}/{report_path.name}"
+        if prefix
+        else f"https://storage.googleapis.com/{bucket}/{report_path.name}"
+    )
+    high_signal_count = int(scored_payload.get("high_signal_count") or 0)
+    count = int(scored_payload.get("count") or 0)
+
+    body = "\n".join(
+        [
+            "Rosy，",
+            "",
+            f"今天的 Strategic Signal Scanner 已完成（{date_str}）。",
+            "",
+            f"抓取数量：{count}",
+            f"高信号数量：{high_signal_count}",
+            "",
+            "Archive 首页：",
+            archive_url,
+            "",
+            "今日报告：",
+            report_url,
+            "",
+            "—— Rosy",
+        ]
+    )
+    html_body = f"""
+    <html>
+      <body style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;line-height:1.7;color:#4a2f21;">
+        <p>Rosy，</p>
+        <p>今天的 <strong>Strategic Signal Scanner</strong> 已完成（{date_str}）。</p>
+        <p>抓取数量：<strong>{count}</strong><br/>
+        高信号数量：<strong>{high_signal_count}</strong></p>
+        <p><a href="{archive_url}">打开 Archive 首页</a><br/>
+        <a href="{report_url}">打开今日报告</a></p>
+        <p>—— Rosy</p>
+      </body>
+    </html>
+    """
+    try:
+        send_notification_email(
+            subject=f"Strategic Signal Scanner · {date_str}",
+            body=body,
+            html_body=html_body,
+        )
+    except Exception as exc:
+        print(f"Email notification skipped or failed: {exc}", flush=True)
+
+
+def _load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _content_type_for(suffix: str) -> str:
