@@ -17,4 +17,4 @@ RUN pip install --upgrade pip \
 
 COPY . /app
 
-CMD ["python", "cloudrun_job.py"]
+CMD ["python", "tools/cloudrun_job.py"]

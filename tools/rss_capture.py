@@ -5,9 +5,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
+if str(REPO_DIR) not in sys.path:
+    sys.path.insert(0, str(REPO_DIR))
 
 from fetcher import fetch_articles
 from sources import DEFAULT_ITEMS_PER_FEED, RSS_FEEDS, get_feeds
@@ -22,7 +28,6 @@ from state import (
 )
 
 LOCAL_TZ = timezone(timedelta(hours=8))
-SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def parse_args() -> argparse.Namespace:
@@ -64,9 +69,9 @@ def main() -> int:
     args = parse_args()
     out_dir = Path(args.output_dir)
     if not out_dir.is_absolute():
-        out_dir = SCRIPT_DIR / out_dir
+        out_dir = REPO_DIR / out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    state, state_path = load_state(SCRIPT_DIR)
+    state, state_path = load_state(REPO_DIR)
 
     print("Fetching real sources...", flush=True)
     feeds = get_feeds(args.group)
@@ -103,7 +108,7 @@ def main() -> int:
         _update_state_from_articles(state, feeds, kept_articles)
         for article in kept_articles:
             remember_article(state, article)
-        saved_state = save_state(state, SCRIPT_DIR)
+        saved_state = save_state(state, REPO_DIR)
         print(f"State saved: {saved_state}", flush=True)
     return 0
 

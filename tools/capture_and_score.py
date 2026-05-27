@@ -10,10 +10,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
+if str(REPO_DIR) not in sys.path:
+    sys.path.insert(0, str(REPO_DIR))
+
 from sources import DEFAULT_ITEMS_PER_FEED
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
 LOCAL_TZ = timezone(timedelta(hours=8))
 RSS_CAPTURE_SCRIPT = SCRIPT_DIR / "rss_capture.py"
 SCORE_RAW_SCRIPT = SCRIPT_DIR / "score_raw_rss.py"
@@ -146,7 +150,7 @@ def main() -> int:
 
     output_dir = Path(args.output_dir)
     if not output_dir.is_absolute():
-        output_dir = SCRIPT_DIR / output_dir
+        output_dir = REPO_DIR / output_dir
     raw_path = _pick_latest_existing(_candidate_raw_files(output_dir))
     if raw_path is None:
         print(

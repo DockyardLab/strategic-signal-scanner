@@ -14,7 +14,8 @@ from typing import Any
 
 LOCAL_TZ = timezone(timedelta(hours=8))
 SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_ARTIFACT_DIR = SCRIPT_DIR / "artifacts" / "rss"
+REPO_DIR = SCRIPT_DIR.parent
+DEFAULT_ARTIFACT_DIR = REPO_DIR / "artifacts" / "rss"
 
 
 def parse_args() -> argparse.Namespace:
@@ -69,7 +70,7 @@ def main() -> int:
 def _resolve_scored_file(scored_file: str) -> Path:
     if scored_file:
         path = Path(scored_file)
-        return path if path.is_absolute() else (SCRIPT_DIR / path)
+        return path if path.is_absolute() else (REPO_DIR / path)
 
     candidates = sorted(DEFAULT_ARTIFACT_DIR.glob("scored_*.json"))
     if not candidates:
@@ -80,7 +81,7 @@ def _resolve_scored_file(scored_file: str) -> Path:
 def _resolve_output_path(output: str, scored_path: Path, report_date: str) -> Path:
     if output:
         out = Path(output)
-        return out if out.is_absolute() else (SCRIPT_DIR / out)
+        return out if out.is_absolute() else (REPO_DIR / out)
     return scored_path.with_name(f"report_{report_date}.html")
 
 

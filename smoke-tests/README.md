@@ -9,7 +9,7 @@ This folder keeps the development / smoke test notes in one place so the repo ro
 
 ## Why this exists
 
-The public repo keeps implementation code at the top level and moves longer process notes into this folder.
+The public repo keeps implementation code in `tools/` and moves longer process notes into this folder.
 
 That makes the repo easier to scan for:
 

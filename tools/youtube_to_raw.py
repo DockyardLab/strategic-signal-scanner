@@ -12,6 +12,7 @@ from pathlib import Path
 
 LOCAL_TZ = timezone(timedelta(hours=8))
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
 
 
 def parse_args() -> argparse.Namespace:
@@ -82,8 +83,8 @@ def main() -> int:
 def _resolve_output_path(output: str, video_id: str) -> Path:
     if output:
         path = Path(output)
-        return path if path.is_absolute() else (SCRIPT_DIR / path)
-    return SCRIPT_DIR / "artifacts" / "rss" / f"raw_youtube_{video_id}.json"
+        return path if path.is_absolute() else (REPO_DIR / path)
+    return REPO_DIR / "artifacts" / "rss" / f"raw_youtube_{video_id}.json"
 
 
 def _extract_video_id(url: str) -> str:

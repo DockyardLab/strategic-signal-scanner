@@ -21,9 +21,10 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-DEFAULT_SAMPLE_DIR = Path("samples")
-SYSTEM_INSTRUCTION_PATH = Path(__file__).resolve().parent / "system_instruction.md"
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
+DEFAULT_SAMPLE_DIR = Path("samples")
+SYSTEM_INSTRUCTION_PATH = SCRIPT_DIR / "system_instruction.md"
 
 POSITIVE_KEYWORDS = {
     "ai": 1,
@@ -150,7 +151,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     _load_local_env()
     args = parse_args()
-    sample_paths = _collect_sample_paths(Path(args.samples))
+    sample_paths = _collect_sample_paths(_resolve_repo_path(Path(args.samples)))
     if args.limit is not None:
         sample_paths = sample_paths[: max(0, args.limit)]
 
@@ -229,7 +230,7 @@ def _load_system_instruction() -> str:
 
 
 def _load_local_env() -> None:
-    for candidate in (Path.cwd() / ".env", SCRIPT_DIR / ".env"):
+    for candidate in (Path.cwd() / ".env", REPO_DIR / ".env", SCRIPT_DIR / ".env"):
         if not candidate.exists():
             continue
         for raw_line in candidate.read_text(encoding="utf-8").splitlines():
@@ -241,6 +242,12 @@ def _load_local_env() -> None:
             value = value.strip().strip('"').strip("'")
             if key and key not in os.environ:
                 os.environ[key] = value
+
+
+def _resolve_repo_path(path: Path) -> Path:
+    if path.is_absolute():
+        return path
+    return REPO_DIR / path
 
 
 def _analyze(

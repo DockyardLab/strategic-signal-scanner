@@ -14,6 +14,7 @@ from mailer import send_notification_email
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
 
 
 def main() -> int:
@@ -30,7 +31,7 @@ def main() -> int:
     max_age_days = _env("MAX_AGE_DAYS", "180")
     ignore_state = _env_bool("IGNORE_STATE", False)
     report_max_age_days = _env("REPORT_MAX_AGE_DAYS", max_age_days)
-    state_path = SCRIPT_DIR / "artifacts" / "rss" / "state.json"
+    state_path = REPO_DIR / "artifacts" / "rss" / "state.json"
 
     print("Cloud Run Job started.", flush=True)
     print(f"  output_dir={output_dir}", flush=True)
@@ -127,7 +128,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
 def _env_path(name: str, default: str) -> Path:
     value = _env(name, default)
     path = Path(value)
-    return path if path.is_absolute() else (SCRIPT_DIR / path)
+    return path if path.is_absolute() else (REPO_DIR / path)
 
 
 def _clear_previous_outputs(output_dir: Path) -> None:

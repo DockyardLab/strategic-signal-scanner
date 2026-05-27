@@ -17,6 +17,7 @@ from typing import Any
 
 LOCAL_TZ = timezone(timedelta(hours=8))
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
 DATE_RE = re.compile(r"^scored_(\d{4}-\d{2}-\d{2})\.json$")
 FEEDX_RE = re.compile(r"^scored_feedx_(\d{4}-\d{2}-\d{2})\.json$")
 
@@ -72,13 +73,13 @@ def main() -> int:
 
 def _resolve_artifact_dir(path: str) -> Path:
     out = Path(path)
-    return out if out.is_absolute() else (SCRIPT_DIR / out)
+    return out if out.is_absolute() else (REPO_DIR / out)
 
 
 def _resolve_output(output: str, artifact_dir: Path) -> Path:
     if output:
         out = Path(output)
-        return out if out.is_absolute() else (SCRIPT_DIR / out)
+        return out if out.is_absolute() else (REPO_DIR / out)
     return artifact_dir / "archive_index.html"
 
 

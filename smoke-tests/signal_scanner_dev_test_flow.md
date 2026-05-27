@@ -30,11 +30,11 @@
 
 先把系统拆成几个最小能力：
 
-- `rss_capture.py`：抓取内容
-- `score_raw_rss.py`：给内容打分
-- `build_report.py`：生成当天 report
-- `build_archive.py`：生成 archive 首页
-- `signal_replay.py`：本地回放和验证
+- `tools/rss_capture.py`：抓取内容
+- `tools/score_raw_rss.py`：给内容打分
+- `tools/build_report.py`：生成当天 report
+- `tools/build_archive.py`：生成 archive 首页
+- `tools/signal_replay.py`：本地回放和验证
 
 ### 2.2 先验证流程，不急着上云
 
@@ -85,7 +85,7 @@
 
 为了让它能自动跑，我们加了：
 
-- `cloudrun_job.py`
+- `tools/cloudrun_job.py`
 - `Dockerfile`
 - 对应的云端依赖
 

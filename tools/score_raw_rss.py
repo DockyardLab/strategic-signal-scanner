@@ -10,6 +10,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_DIR = SCRIPT_DIR.parent
+if str(REPO_DIR) not in sys.path:
+    sys.path.insert(0, str(REPO_DIR))
+
 from signal_replay import (
     _analyze,
     _build_gemini_prompt,
@@ -20,7 +25,6 @@ from signal_replay import (
 )
 
 
-SCRIPT_DIR = Path(__file__).resolve().parent
 LOCAL_TZ = timezone(timedelta(hours=8))
 
 
@@ -75,7 +79,7 @@ def main() -> int:
     args = parse_args()
     raw_path = Path(args.raw_json)
     if not raw_path.is_absolute():
-        raw_path = SCRIPT_DIR / raw_path
+        raw_path = REPO_DIR / raw_path
     if not raw_path.exists():
         print(f"Raw file not found: {raw_path}", file=sys.stderr)
         return 1

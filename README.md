@@ -6,16 +6,17 @@ A modular Google Cloud Run Job pipeline for capturing, scoring, archiving, and e
 
 ## Start here
 
-- [Quickstart](quickstart.md)
+- [Quickstart](docs/quickstart.md)
 - [Cloud Run guide](cloudrun/README.md)
+- [Tools guide](tools/README.md)
 
 ## What this repo contains
 
-- Python pipeline code for capture, scoring, reporting, and archive generation
-- Google Cloud Run Job entrypoint
-- Source group definitions
-- A small set of sample inputs
-- Minimal docs for local use and Google Cloud deployment
+- `tools/`: the runnable implementation scripts for capture, scoring, reporting, archive generation, replay, and the Cloud Run Job entrypoint
+- `fetcher.py`, `mailer.py`, `sources.py`, and `state.py`: shared pipeline modules
+- `cloudrun/`: Google Cloud Run deployment notes
+- `smoke-tests/`: development and replay notes
+- `samples/`: a small set of sample inputs
 
 ## Default behavior
 
@@ -35,13 +36,15 @@ This project is built around the Google Cloud stack:
 
 ## Repository layout
 
-- `capture_and_score.py`: one-command capture + scoring pipeline
-- `rss_capture.py`: capture-only pipeline
-- `score_raw_rss.py`: score an existing raw file
-- `build_report.py`: render HTML report
-- `build_archive.py`: render browsable archive
-- `cloudrun_job.py`: Google Cloud Run Job entrypoint
-- `cloudrun/`: Cloud Run-specific docs
+- `tools/capture_and_score.py`: one-command capture + scoring pipeline
+- `tools/rss_capture.py`: capture-only pipeline
+- `tools/score_raw_rss.py`: score an existing raw file
+- `tools/build_report.py`: render HTML report
+- `tools/build_archive.py`: render browsable archive
+- `tools/cloudrun_job.py`: Google Cloud Run Job entrypoint
+- `tools/signal_replay.py`: local replay and evaluation helper
+- `tools/youtube_to_raw.py`: convert a YouTube transcript into a raw scanner item
+- `cloudrun/`: Google Cloud Run-specific docs
 - `smoke-tests/`: smoke test and development flow notes
 - `samples/`: minimal sample inputs
 
@@ -62,8 +65,8 @@ This repo uses `LICENSE` at the root.
 
 ## How to use it
 
-For local usage and Cloud Run deployment details, start with:
+For local usage and Google Cloud deployment details, start with:
 
-- [quickstart.md](quickstart.md)
+- [quickstart.md](docs/quickstart.md)
 - [cloudrun/README.md](cloudrun/README.md)
 - [smoke-tests/README.md](smoke-tests/README.md)

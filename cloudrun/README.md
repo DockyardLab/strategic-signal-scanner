@@ -58,11 +58,13 @@ Other useful values:
 
 ## Local smoke test
 
+Run this from the repository root.
+
 ```bash
-SCORE_MODE=mock RUN_GROUP=cloudrun ITEMS_PER_FEED=1 MAX_ARTICLES=5 OUTPUT_DIR=/tmp/strategy-agent-cloudrun python3 cloudrun_job.py
+SCORE_MODE=mock RUN_GROUP=cloudrun ITEMS_PER_FEED=1 MAX_ARTICLES=5 OUTPUT_DIR=/tmp/strategy-agent-cloudrun python3 tools/cloudrun_job.py
 ```
 
 ## Related docs
 
 - [groups.md](groups.md)
-- [quickstart.md](../quickstart.md)
+- [quickstart.md](../docs/quickstart.md)
