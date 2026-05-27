@@ -1,6 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
+*.pyc
+*.pyo
 *$py.class
 
 # C extensions
@@ -59,11 +61,10 @@ artifacts/
 /private/
 /private_tmp/
 CloudRun_四端教程.html
-Signal_scanner_v0/.env
-Signal_scanner_v0/.DS_Store
-Strategy_signal_scanner_agent/.DS_Store
-rosy-signal-scanner/.DS_Store
-skills/.DS_Store
+Signal_scanner_v0/
+Strategy_signal_scanner_agent/
+rosy-signal-scanner/
+skills/
 
 # Build / notebook / notebook checkpoints
 .ipynb_checkpoints/

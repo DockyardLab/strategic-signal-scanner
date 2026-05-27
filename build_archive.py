@@ -160,6 +160,7 @@ def _render_archive(entries: list[DayEntry], max_age_days: int) -> str:
     now = datetime.now(LOCAL_TZ)
     daily_entries = [entry for entry in entries if entry.kind == "daily"]
     special_entries = [entry for entry in entries if entry.kind != "daily"]
+    month_groups = _group_daily_entries_by_month(daily_entries)
 
     latest_date = daily_entries[0].date if daily_entries else (special_entries[0].date if special_entries else "暂无")
     total_days = len(daily_entries)
@@ -174,9 +175,13 @@ def _render_archive(entries: list[DayEntry], max_age_days: int) -> str:
         recent_cards.append(_render_day_card(label, entry))
 
     feedx_cards = "\n".join(_render_day_card("FeedX", entry) for entry in special_entries)
-    date_rows = "\n".join(_render_date_row(entry) for entry in daily_entries)
-    if not date_rows:
-        date_rows = '<div class="empty">暂时没有可展示的归档页面。</div>'
+    month_nav = "\n".join(
+        f'<a class="chip chip-green" href="#month-{_escape(month_key)}">{_escape(_month_label(month_key))} · {len(month_entries)}天</a>'
+        for month_key, month_entries in month_groups
+    )
+    month_sections = "\n".join(_render_month_section(month_key, month_entries) for month_key, month_entries in month_groups)
+    if not month_sections:
+        month_sections = '<div class="empty">暂时没有可展示的归档页面。</div>'
 
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -313,15 +318,61 @@ def _render_archive(entries: list[DayEntry], max_age_days: int) -> str:
           <p class="sub">按日期倒序排列，点击任意一天就能进入那天的 report。</p>
         </div>
       </div>
-      <div class="chip-row">{source_chips}</div>
+      <div class="chip-row">{month_nav or '<span class="chip">暂无月份分组</span>'}</div>
       <div style="height:14px"></div>
-      <div class="date-list">{date_rows}</div>
+      {month_sections}
+      <div style="height:16px"></div>
+      <div class="chip-row">{source_chips}</div>
     </div>
 
     <div class="footer">Archive index · source files live in artifacts/rss · each day links to its corresponding report</div>
   </div>
 </body>
 </html>"""
+
+
+def _group_daily_entries_by_month(entries: list[DayEntry]) -> list[tuple[str, list[DayEntry]]]:
+    groups: list[tuple[str, list[DayEntry]]] = []
+    current_month = ""
+    current_entries: list[DayEntry] = []
+    for entry in entries:
+        month = entry.date[:7]
+        if month != current_month:
+            if current_entries:
+                groups.append((current_month, current_entries))
+            current_month = month
+            current_entries = []
+        current_entries.append(entry)
+    if current_entries:
+        groups.append((current_month, current_entries))
+    return groups
+
+
+def _month_label(month_key: str) -> str:
+    try:
+        dt = datetime.strptime(month_key, "%Y-%m")
+    except ValueError:
+        return month_key
+    return f"{dt.year}年{dt.month}月"
+
+
+def _render_month_section(month_key: str, entries: list[DayEntry]) -> str:
+    label = _month_label(month_key)
+    month_rows = "\n".join(_render_date_row(entry) for entry in entries)
+    if not month_rows:
+        month_rows = '<div class="empty">暂时没有可展示的归档页面。</div>'
+    return f'''
+    <div id="month-{_escape(month_key)}" style="margin-bottom: 16px; padding-top: 2px;">
+      <div class="section-head" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eadfcb;">
+        <div>
+          <h2>{_escape(label)}</h2>
+          <p class="sub">{len(entries)} 天 report，按日期倒序排列。</p>
+        </div>
+        <div class="chip chip-amber">{len(entries)} 天</div>
+      </div>
+      <div class="date-list">{month_rows}</div>
+    </div>
+    '''
 
 
 def _render_day_card(label: str, entry: DayEntry) -> str:

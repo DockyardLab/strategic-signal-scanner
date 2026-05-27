@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1980" height="1360" viewBox="0 0 1980 1360" role="img" aria-labelledby="title desc">
+  <title id="title">Gemini API vs Vertex AI vs Cloud Run Production Architecture</title>
+  <desc id="desc">Three-column architecture comparison showing Gemini API, Vertex AI, and the current Cloud Run production stack with model, auth, storage, scheduler, and email notification flows.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fffdf8"/>
+      <stop offset="52%" stop-color="#f7f1e5"/>
+      <stop offset="100%" stop-color="#efe1cf"/>
+    </linearGradient>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eaf2ff"/>
+      <stop offset="100%" stop-color="#d8e6ff"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eefbf1"/>
+      <stop offset="100%" stop-color="#d7efde"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff3ea"/>
+      <stop offset="100%" stop-color="#f4dfc8"/>
+    </linearGradient>
+    <linearGradient id="bottom" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fffaf3"/>
+      <stop offset="100%" stop-color="#f1e2cf"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#8a6347" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#8a5a3e"/>
+    </marker>
+    <style>
+      .title { font: 800 40px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#6f3f2c; letter-spacing:-.03em; }
+      .sub { font: 500 17px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#8d6450; }
+      .section { font: 800 25px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#6f3f2c; }
+      .small { font: 500 14px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#6d584c; }
+      .tiny { font: 500 13px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#756356; }
+      .boxTitle { font: 800 18px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#3b271d; }
+      .chip { font: 800 12px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; letter-spacing:.04em; }
+      .panel { rx: 28; ry: 28; filter:url(#shadow); stroke:#dcc3a7; stroke-width:1.2; }
+      .node { rx: 18; ry: 18; stroke:#d8c0a5; stroke-width:1.1; }
+      .line { stroke:#8a5a3e; stroke-width:2.6; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+      .dash { stroke-dasharray: 8 8; }
+      .pill { rx: 999; ry: 999; }
+      .label { font: 700 13px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#7f5a49; }
+    </style>
+  </defs>
+
+  <rect width="1980" height="1360" fill="url(#bg)"/>
+
+  <text x="72" y="72" class="title">Gemini API / Vertex AI / Cloud Run 三栏架构图</text>
+  <text x="72" y="108" class="sub">同一代 Gemini 模型可以走不同入口。Gemini API 更轻，Vertex AI 更受控，而 Cloud Run 是你现在这套正式生产流程。</text>
+
+  <!-- Panels -->
+  <rect x="64" y="156" width="584" height="780" rx="30" class="panel" fill="url(#g1)"/>
+  <rect x="698" y="156" width="584" height="780" rx="30" class="panel" fill="url(#g2)"/>
+  <rect x="1332" y="156" width="584" height="780" rx="30" class="panel" fill="url(#g3)"/>
+
+  <!-- Column 1: Gemini API -->
+  <text x="96" y="210" class="section">Gemini API</text>
+  <text x="96" y="238" class="small">开发者直连的模型 API。重点是“快速接入、直接问模型”。</text>
+
+  <rect x="96" y="276" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="120" y="308" class="boxTitle">调用方</text>
+  <text x="120" y="334" class="small">本地脚本、Notebook、轻量 Web App、原型服务。</text>
+
+  <rect x="96" y="404" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="120" y="436" class="boxTitle">认证</text>
+  <text x="120" y="462" class="small">API Key：`GEMINI_API_KEY`。最适合快速试错和 smoke test。</text>
+
+  <rect x="96" y="532" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="120" y="564" class="boxTitle">请求路径</text>
+  <text x="120" y="590" class="small">例如 `generativelanguage.googleapis.com/v1beta/...:generateContent`。</text>
+
+  <rect x="96" y="660" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="120" y="692" class="boxTitle">典型优点</text>
+  <text x="120" y="718" class="small">接入快、代码轻、调试简单、适合个人项目和原型。</text>
+
+  <rect x="96" y="788" width="520" height="96" rx="18" class="node" fill="#edf4ff"/>
+  <text x="120" y="820" class="boxTitle">适合场景</text>
+  <text x="120" y="846" class="small">本地验证、Demo、短周期工具、低治理需求的应用。</text>
+
+  <path d="M356 372 L356 398" class="line" marker-end="url(#arrow)"/>
+  <path d="M356 500 L356 526" class="line" marker-end="url(#arrow)"/>
+  <path d="M356 628 L356 654" class="line" marker-end="url(#arrow)"/>
+  <path d="M356 756 L356 782" class="line" marker-end="url(#arrow)"/>
+
+  <!-- Column 2: Vertex AI -->
+  <text x="730" y="210" class="section">Vertex AI</text>
+  <text x="730" y="238" class="small">Google Cloud 平台化入口。重点是“权限、治理、企业级运维”。</text>
+
+  <rect x="730" y="276" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="754" y="308" class="boxTitle">调用方</text>
+  <text x="754" y="334" class="small">Cloud Run Job、服务、Agent、批处理任务、内部系统。</text>
+
+  <rect x="730" y="404" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="754" y="436" class="boxTitle">认证</text>
+  <text x="754" y="462" class="small">Service Account + ADC + IAM，不靠 API Key。</text>
+
+  <rect x="730" y="532" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="754" y="564" class="boxTitle">请求路径</text>
+  <text x="754" y="590" class="small">项目 + 地区 + publisher model，像 `projects/.../locations/...`。</text>
+
+  <rect x="730" y="660" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="754" y="692" class="boxTitle">典型优点</text>
+  <text x="754" y="718" class="small">权限清晰、审计友好、和 Cloud Run / Storage / Scheduler 很搭。</text>
+
+  <rect x="730" y="788" width="520" height="96" rx="18" class="node" fill="#eefaf0"/>
+  <text x="754" y="820" class="boxTitle">适合场景</text>
+  <text x="754" y="846" class="small">生产流程、团队协作、数据隔离、长期运行的云端任务。</text>
+
+  <path d="M990 372 L990 398" class="line" marker-end="url(#arrow)"/>
+  <path d="M990 500 L990 526" class="line" marker-end="url(#arrow)"/>
+  <path d="M990 628 L990 654" class="line" marker-end="url(#arrow)"/>
+  <path d="M990 756 L990 782" class="line" marker-end="url(#arrow)"/>
+
+  <!-- Column 3: Current stack -->
+  <text x="1364" y="210" class="section">你现在这套 Cloud Run</text>
+  <text x="1364" y="238" class="small">一个端到端生产栈：模型调用、抓取、生成、存储、调度、邮件通知。</text>
+
+  <rect x="1364" y="276" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="1388" y="308" class="boxTitle">执行层</text>
+  <text x="1388" y="334" class="small">Cloud Run Job `strategic-signal-scanner` 定时或手动触发。</text>
+
+  <rect x="1364" y="404" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="1388" y="436" class="boxTitle">模型层</text>
+  <text x="1388" y="462" class="small">Vertex AI + Gemini：`gemini-2.5-flash-lite`。</text>
+
+  <rect x="1364" y="532" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="1388" y="564" class="boxTitle">存储层</text>
+  <text x="1388" y="590" class="small">Cloud Storage Public Bucket：报告和 archive 可公开点击。</text>
+
+  <rect x="1364" y="660" width="520" height="96" rx="18" class="node" fill="#ffffff"/>
+  <text x="1388" y="692" class="boxTitle">调度 / 通知</text>
+  <text x="1388" y="718" class="small">Cloud Scheduler `strategic-signal-scanner-schedule` + SMTP 邮件。</text>
+
+  <rect x="1364" y="788" width="520" height="96" rx="18" class="node" fill="#fff7ea"/>
+  <text x="1388" y="820" class="boxTitle">推荐价值</text>
+  <text x="1388" y="846" class="small">这是从“模型调用”升级到“自动化产品”的完整生产形态。</text>
+
+  <path d="M1624 372 L1624 398" class="line" marker-end="url(#arrow)"/>
+  <path d="M1624 500 L1624 526" class="line" marker-end="url(#arrow)"/>
+  <path d="M1624 628 L1624 654" class="line" marker-end="url(#arrow)"/>
+  <path d="M1624 756 L1624 782" class="line" marker-end="url(#arrow)"/>
+
+  <!-- Shared strip -->
+  <rect x="64" y="972" width="1852" height="190" rx="30" fill="url(#bottom)" stroke="#e0cdb6" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="96" y="1012" class="section">三者最核心的区别</text>
+  <text x="96" y="1040" class="small">它们共享的是同一代 Gemini 模型家族，但“认证方式、平台治理、适用场景”完全不同。</text>
+
+  <rect x="96" y="1064" width="250" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="118" y="1091" class="chip" fill="#355b89">Gemini API：API Key</text>
+
+  <rect x="360" y="1064" width="262" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="382" y="1091" class="chip" fill="#2e7d46">Vertex AI：Service Account</text>
+
+  <rect x="636" y="1064" width="282" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="658" y="1091" class="chip" fill="#9a6418">Cloud Run：自动化执行体</text>
+
+  <rect x="932" y="1064" width="280" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="954" y="1091" class="chip" fill="#8a3f2f">Cloud Storage：公开展示层</text>
+
+  <rect x="1226" y="1064" width="272" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="1248" y="1091" class="chip" fill="#7b4d2c">Scheduler：时间触发器</text>
+
+  <rect x="1512" y="1064" width="340" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="1534" y="1091" class="chip" fill="#4e5d7a">SMTP：通知通道，不消耗 Gemini token</text>
+
+  <rect x="96" y="1130" width="1758" height="92" rx="22" fill="#fffaf4" stroke="#e0cdb6" stroke-width="1.0"/>
+  <text x="124" y="1164" class="tiny">一句话建议：</text>
+  <text x="220" y="1164" class="tiny">原型和本地验证，先用 Gemini API；正式上云、长期跑、要审计和权限治理，优先 Vertex AI；</text>
+  <text x="220" y="1188" class="tiny">你现在这套生产流程已经把 Vertex AI、Cloud Run、Cloud Storage、Scheduler 和邮件通知串起来了。</text>
+</svg>

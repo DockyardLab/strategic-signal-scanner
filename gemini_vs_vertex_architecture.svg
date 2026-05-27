@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1240" viewBox="0 0 1800 1240" role="img" aria-labelledby="title desc">
+  <title id="title">Gemini API vs Vertex AI Architecture</title>
+  <desc id="desc">A side-by-side comparison of Gemini API and Vertex AI showing request flow, authentication, platform surface, and typical use cases.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fffdf7"/>
+      <stop offset="55%" stop-color="#f6efdf"/>
+      <stop offset="100%" stop-color="#efe1cb"/>
+    </linearGradient>
+    <linearGradient id="leftPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef5ff"/>
+      <stop offset="100%" stop-color="#dce8fb"/>
+    </linearGradient>
+    <linearGradient id="rightPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef9f0"/>
+      <stop offset="100%" stop-color="#d8eedc"/>
+    </linearGradient>
+    <linearGradient id="bottomPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff8ef"/>
+      <stop offset="100%" stop-color="#f3e5d3"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#836347" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#9b6748"/>
+    </marker>
+    <style>
+      .title { font: 800 38px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#733d2a; letter-spacing:-.03em; }
+      .sub { font: 500 17px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#8d614b; }
+      .section { font: 800 24px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#733d2a; }
+      .small { font: 500 14px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#6a554a; }
+      .tiny { font: 500 13px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#7c665a; }
+      .boxTitle { font: 800 18px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; fill:#3f2a1f; }
+      .chip { font: 800 12px -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; letter-spacing:.04em; }
+      .panel { rx: 28; ry: 28; filter:url(#shadow); stroke:#dec5a8; stroke-width:1.2; }
+      .node { rx: 18; ry: 18; stroke:#d8c0a5; stroke-width:1.1; }
+      .line { stroke:#9b6748; stroke-width:2.6; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+      .dash { stroke-dasharray: 8 8; }
+      .pill { rx: 999; ry: 999; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1240" fill="url(#bg)"/>
+
+  <text x="72" y="74" class="title">Vertex AI 和 Gemini API：架构对比</text>
+  <text x="72" y="110" class="sub">它们用的是同一代 Gemini 模型家族，但入口、身份认证、平台能力和运维边界不同。</text>
+
+  <rect x="64" y="152" width="1672" height="760" rx="30" class="panel" fill="#fffaf4"/>
+
+  <!-- Left column -->
+  <rect x="96" y="200" width="740" height="640" rx="26" class="panel" fill="url(#leftPanel)"/>
+  <text x="124" y="242" class="section">Gemini API</text>
+  <text x="124" y="270" class="small">开发者直连的模型 API。更像“拿到 key 直接问模型”。</text>
+
+  <rect x="124" y="310" width="660" height="104" rx="18" class="node" fill="#ffffff"/>
+  <text x="148" y="344" class="boxTitle">App / Script</text>
+  <text x="148" y="370" class="small">本地脚本、Web app、Cloud Run 都可以作为调用方。</text>
+
+  <rect x="124" y="442" width="660" height="104" rx="18" class="node" fill="#ffffff"/>
+  <text x="148" y="476" class="boxTitle">API Key</text>
+  <text x="148" y="502" class="small">用 `GEMINI_API_KEY` 认证，适合快速接入和本地 smoke test。</text>
+
+  <rect x="124" y="574" width="660" height="104" rx="18" class="node" fill="#ffffff"/>
+  <text x="148" y="608" class="boxTitle">Gemini endpoint</text>
+  <text x="148" y="634" class="small">例如 `generativelanguage.googleapis.com/v1beta/...:generateContent`。</text>
+
+  <rect x="124" y="706" width="660" height="104" rx="18" class="node" fill="#ffffff"/>
+  <text x="148" y="740" class="boxTitle">Model response</text>
+  <text x="148" y="766" class="small">直接返回文本 / JSON / 结构化输出，适合轻量调用。</text>
+
+  <path d="M454 414 L454 438" class="line" marker-end="url(#arrow)"/>
+  <path d="M454 546 L454 570" class="line" marker-end="url(#arrow)"/>
+  <path d="M454 678 L454 702" class="line" marker-end="url(#arrow)"/>
+
+  <rect x="124" y="834" width="660" height="78" rx="18" class="node" fill="#edf4ff"/>
+  <text x="148" y="865" class="tiny">典型特征：接入快、代码轻、适合原型、个人项目和轻量生产。</text>
+  <text x="148" y="889" class="tiny">如果只想“把 key 挂上去就开始问模型”，通常选这条。</text>
+
+  <!-- Right column -->
+  <rect x="964" y="200" width="740" height="640" rx="26" class="panel" fill="url(#rightPanel)"/>
+  <text x="992" y="242" class="section">Vertex AI</text>
+  <text x="992" y="270" class="small">Google Cloud 的 ML / GenAI 平台。更像“云上受控地用模型”。</text>
+
+  <rect x="992" y="310" width="660" height="104" rx="18" class="node" fill="#ffffff"/>
+  <text x="1016" y="344" class="boxTitle">App / Job / Agent</text>
+  <text x="1016" y="370" class="small">Cloud Run Job、服务、Agent 编排都可以作为调用方。</text>
+
+  <rect x="992" y="442" width="660" height="104" rx="18" class="node" fill="#ffffff"/>
+  <text x="1016" y="476" class="boxTitle">Service Account / ADC</text>
+  <text x="1016" y="502" class="small">靠 IAM 和应用默认凭证，不靠 API key。</text>
+
+  <rect x="992" y="574" width="660" height="104" rx="18" class="node" fill="#ffffff"/>
+  <text x="1016" y="476" class="boxTitle" opacity="0">.</text>
+  <text x="1016" y="608" class="boxTitle">Vertex AI Gemini endpoint</text>
+  <text x="1016" y="634" class="small">例如 `projects/.../locations/.../publishers/google/models/...`。</text>
+
+  <rect x="992" y="706" width="660" height="104" rx="18" class="node" fill="#ffffff"/>
+  <text x="1016" y="740" class="boxTitle">Platform features</text>
+  <text x="1016" y="766" class="small">Model Garden、IAM、监控、数据驻留、Grounding、Tuning。</text>
+
+  <path d="M1322 414 L1322 438" class="line" marker-end="url(#arrow)"/>
+  <path d="M1322 546 L1322 570" class="line" marker-end="url(#arrow)"/>
+  <path d="M1322 678 L1322 702" class="line" marker-end="url(#arrow)"/>
+
+  <rect x="992" y="834" width="660" height="78" rx="18" class="node" fill="#eefaf0"/>
+  <text x="1016" y="865" class="tiny">典型特征：更适合生产、权限治理、数据隔离、审计和团队协作。</text>
+  <text x="1016" y="889" class="tiny">如果你在 Cloud Run / GCP 里跑正式流程，通常选这条。</text>
+
+  <!-- Shared model strip -->
+  <rect x="286" y="962" width="1228" height="154" rx="28" fill="url(#bottomPanel)" stroke="#e4cfbb" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="318" y="1002" class="section">它们共享什么</text>
+  <text x="318" y="1030" class="small">同一套 Gemini 模型家族、相似的 prompt 设计、相近的 structured output 思路。</text>
+
+  <rect x="318" y="1050" width="260" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="336" y="1077" class="chip" fill="#355b89">共享：模型家族</text>
+
+  <rect x="592" y="1050" width="260" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="610" y="1077" class="chip" fill="#2e7d46">共享：文本 / 多模态能力</text>
+
+  <rect x="866" y="1050" width="260" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="884" y="1077" class="chip" fill="#9a6418">不同：认证方式</text>
+
+  <rect x="1140" y="1050" width="340" height="42" rx="999" class="pill" fill="#ffffff" stroke="#d8c0a5"/>
+  <text x="1158" y="1077" class="chip" fill="#8a3f2f">不同：平台治理 / 生产边界</text>
+
+  <!-- Bottom decision -->
+  <rect x="64" y="1140" width="1672" height="62" rx="20" fill="#fffaf4" stroke="#e4cfbb" stroke-width="1.2"/>
+  <text x="90" y="1178" class="tiny">一句话判断：</text>
+  <text x="184" y="1178" class="tiny">Gemini API 更像“直接用模型的开发者通道”；Vertex AI 更像“在 Google Cloud 里受控地部署和使用 Gemini”。</text>
+</svg>

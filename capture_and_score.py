@@ -45,7 +45,7 @@ def parse_args() -> argparse.Namespace:
         "--group",
         type=str,
         default="all",
-        choices=("all", "cloudrun", "front", "youtube_front", "youtube", "upstream", "fast", "podcasts", "podcasts_rss", "podcasts_web", "slow", "late"),
+        choices=("all", "cloudrun", "front", "youtube_front", "youtube", "upstream", "fast", "balanced", "balanced_plus", "ai_native_product", "podcasts", "podcasts_rss", "podcasts_web", "slow", "late"),
         help="Source group to capture and score.",
     )
     parser.add_argument(

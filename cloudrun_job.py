@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+import shutil
 from pathlib import Path
 
 from mailer import send_notification_email
@@ -29,12 +30,19 @@ def main() -> int:
     max_age_days = _env("MAX_AGE_DAYS", "180")
     ignore_state = _env_bool("IGNORE_STATE", False)
     report_max_age_days = _env("REPORT_MAX_AGE_DAYS", max_age_days)
+    state_path = SCRIPT_DIR / "artifacts" / "rss" / "state.json"
 
     print("Cloud Run Job started.", flush=True)
     print(f"  output_dir={output_dir}", flush=True)
     print(f"  group={group}", flush=True)
     print(f"  score_mode={score_mode}", flush=True)
     print(f"  model={model}", flush=True)
+
+    bucket = _env("ARCHIVE_BUCKET", "")
+    prefix = _env("ARCHIVE_PREFIX", "signal-archive").strip("/")
+
+    if bucket:
+        _download_state_from_bucket(bucket, prefix, state_path)
 
     capture_cmd = [
         sys.executable,
@@ -58,6 +66,10 @@ def main() -> int:
         capture_cmd.append("--ignore-state")
 
     _run(capture_cmd, cwd=SCRIPT_DIR)
+
+    if bucket:
+        _sync_archive_history_from_bucket(bucket, prefix, output_dir)
+        _mirror_state_into_output_dir(state_path, output_dir)
 
     scored_files = sorted(output_dir.glob("scored_*.json"), key=lambda p: p.stat().st_mtime)
     if not scored_files:
@@ -91,8 +103,6 @@ def main() -> int:
     ]
     _run(build_archive_cmd, cwd=SCRIPT_DIR)
 
-    bucket = _env("ARCHIVE_BUCKET", "")
-    prefix = _env("ARCHIVE_PREFIX", "signal-archive").strip("/")
     if bucket:
         _upload_artifacts(output_dir, bucket, prefix)
     else:
@@ -135,6 +145,58 @@ def _run(cmd: list[str], cwd: Path) -> None:
     result = subprocess.run(cmd, cwd=str(cwd))
     if result.returncode != 0:
         raise SystemExit(result.returncode)
+
+
+def _storage_client():
+    try:
+        from google.cloud import storage
+    except ImportError as exc:
+        raise RuntimeError(
+            "google-cloud-storage is required for archive synchronization."
+        ) from exc
+    return storage.Client()
+
+
+def _download_state_from_bucket(bucket_name: str, prefix: str, state_path: Path) -> None:
+    client = _storage_client()
+    bucket = client.bucket(bucket_name)
+    blob_name = f"{prefix}/state.json" if prefix else "state.json"
+    blob = bucket.get_blob(blob_name)
+    if blob is None:
+        print(f"No remote state found at gs://{bucket_name}/{blob_name}; starting fresh.", flush=True)
+        return
+
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    blob.download_to_filename(str(state_path))
+    print(f"Downloaded archive state from gs://{bucket_name}/{blob_name}", flush=True)
+
+
+def _mirror_state_into_output_dir(state_path: Path, output_dir: Path) -> None:
+    if not state_path.exists():
+        return
+    target = output_dir / "state.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(state_path, target)
+    print(f"Mirrored state into {target}", flush=True)
+
+
+def _sync_archive_history_from_bucket(bucket_name: str, prefix: str, output_dir: Path) -> None:
+    client = _storage_client()
+    bucket = client.bucket(bucket_name)
+    prefix_path = f"{prefix}/" if prefix else ""
+    print(f"Syncing archive history from gs://{bucket_name}/{prefix_path}...", flush=True)
+    for blob in client.list_blobs(bucket_name, prefix=prefix_path or None):
+        name = blob.name
+        if prefix_path and name.startswith(prefix_path):
+            name = name[len(prefix_path):]
+        if not name.startswith("scored_") or not name.endswith(".json"):
+            continue
+        local_path = output_dir / name
+        if local_path.exists():
+            continue
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        blob.download_to_filename(str(local_path))
+        print(f"  downloaded {blob.name}", flush=True)
 
 
 def _upload_artifacts(output_dir: Path, bucket_name: str, prefix: str) -> None:
@@ -183,7 +245,7 @@ def _send_summary_email(output_dir: Path, bucket: str, prefix: str, report_path:
 
     body = "\n".join(
         [
-            "Rosy，",
+            "Hello，",
             "",
             f"今天的 Strategic Signal Scanner 已完成（{date_str}）。",
             "",
@@ -196,19 +258,19 @@ def _send_summary_email(output_dir: Path, bucket: str, prefix: str, report_path:
             "今日报告：",
             report_url,
             "",
-            "—— Rosy",
+            "—— Strategic Signal Scanner",
         ]
     )
     html_body = f"""
     <html>
       <body style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;line-height:1.7;color:#4a2f21;">
-        <p>Rosy，</p>
+        <p>Hello，</p>
         <p>今天的 <strong>Strategic Signal Scanner</strong> 已完成（{date_str}）。</p>
         <p>抓取数量：<strong>{count}</strong><br/>
         高信号数量：<strong>{high_signal_count}</strong></p>
         <p><a href="{archive_url}">打开 Archive 首页</a><br/>
         <a href="{report_url}">打开今日报告</a></p>
-        <p>—— Rosy</p>
+        <p>—— Strategic Signal Scanner</p>
       </body>
     </html>
     """

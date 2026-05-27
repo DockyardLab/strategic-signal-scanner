@@ -11,7 +11,15 @@ from typing import Any
 
 from fetcher import fetch_articles
 from sources import DEFAULT_ITEMS_PER_FEED, RSS_FEEDS, get_feeds
-from state import CaptureState, load_state, mark_source_success, save_state, source_is_fresh
+from state import (
+    CaptureState,
+    article_dedupe_keys,
+    load_state,
+    mark_source_success,
+    remember_article,
+    save_state,
+    source_is_fresh,
+)
 
 LOCAL_TZ = timezone(timedelta(hours=8))
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -41,7 +49,7 @@ def parse_args() -> argparse.Namespace:
         "--group",
         type=str,
         default="all",
-        choices=("all", "cloudrun", "front", "youtube_front", "youtube", "upstream", "fast", "podcasts", "podcasts_rss", "podcasts_web", "slow", "late"),
+        choices=("all", "cloudrun", "front", "youtube_front", "youtube", "upstream", "fast", "balanced", "balanced_plus", "ai_native_product", "podcasts", "podcasts_rss", "podcasts_web", "slow", "late"),
         help="Source group to capture.",
     )
     parser.add_argument(
@@ -93,6 +101,8 @@ def main() -> int:
 
     if not args.ignore_state:
         _update_state_from_articles(state, feeds, kept_articles)
+        for article in kept_articles:
+            remember_article(state, article)
         saved_state = save_state(state, SCRIPT_DIR)
         print(f"State saved: {saved_state}", flush=True)
     return 0
@@ -125,15 +135,31 @@ def _filter_feeds_by_state(feeds: list[dict[str, Any]], state: CaptureState) -> 
 def _dedupe_against_state(articles: list[dict[str, Any]], state: CaptureState, ignore_state: bool) -> list[dict[str, Any]]:
     if ignore_state:
         return articles
+
     deduped: list[dict[str, Any]] = []
-    seen: set[str] = set(state.seen_urls.keys())
+    seen_urls: set[str] = set(state.seen_urls.keys())
+    seen_title_hashes: set[str] = set(state.seen_title_hashes.keys())
+    seen_content_hashes: set[str] = set(state.seen_content_hashes.keys())
+
     for article in articles:
         if not isinstance(article, dict):
             continue
-        url = str(article.get("url", "")).strip()
-        if not url or url in seen:
+        keys = article_dedupe_keys(article)
+        url = keys.get("url", "")
+        title_hash = keys.get("title_hash", "")
+        content_hash = keys.get("content_hash", "")
+        if url and url in seen_urls:
             continue
-        seen.add(url)
+        if title_hash and title_hash in seen_title_hashes:
+            continue
+        if content_hash and content_hash in seen_content_hashes:
+            continue
+        if url:
+            seen_urls.add(url)
+        if title_hash:
+            seen_title_hashes.add(title_hash)
+        if content_hash:
+            seen_content_hashes.add(content_hash)
         deduped.append(article)
     return deduped
 

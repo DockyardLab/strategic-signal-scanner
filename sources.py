@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-# Nine groups:
+# Ten groups:
 # - FRONT: the people / official blogs the user wants to see first
 # - YOUTUBE_FRONT: the YouTube channels the user explicitly asked to subscribe to
 # - UPSTREAM_BUILDERS: curated follow-builders feeds we subscribe to as an upstream detector
 # - CLOUDRUN: the default bundled production scan set for Cloud Run Jobs
 # - FAST_HIGH_SIGNAL: should usually run next
+# - BALANCED: a more even blend of fast + upstream + late sources
+# - BALANCED_PLUS: a slightly broader variant with a bit more startup / product signal
+# - AI_NATIVE_PRODUCT: Anthropic / Claude / Lenny / AI-native product building sources
 # - PODCASTS_RSS: podcast sources with real RSS feeds
 # - PODCASTS_WEB: podcast or interview sources that are better scraped from web pages
 # - SLOW_RESEARCH: useful but more likely to time out or be noisier
@@ -82,10 +85,12 @@ PODCASTS_RSS: list[dict[str, object]] = [
     {"name": "Unsupervised Learning with Jacob Effron", "url": "https://feeds.simplecast.com/dOSE_bdP", "type": "rss", "tier": 1, "refresh_hours": 84},
     {"name": "The MAD Podcast with Matt Turck", "url": "https://anchor.fm/s/f2ee4948/podcast/rss", "type": "rss", "tier": 1, "refresh_hours": 84},
     {"name": "AI & I", "url": "https://anchor.fm/s/ed1f5584/podcast/rss", "type": "rss", "tier": 1, "refresh_hours": 84},
+    {"name": "Lex Fridman Podcast", "url": "https://lexfridman.com/feed/podcast/", "type": "rss", "tier": 1, "refresh_hours": 24},
 ]
 
 PODCASTS_WEB: list[dict[str, object]] = [
     {"name": "Training Data", "url": "https://rss.com/podcasts/trainingdata/", "type": "web", "tier": 1, "refresh_hours": 84},
+    {"name": "Lenny's Podcast", "url": "https://www.lennysnewsletter.com/listen", "type": "web", "tier": 1, "refresh_hours": 24},
 ]
 
 SLOW_RESEARCH: list[dict[str, object]] = [
@@ -110,12 +115,64 @@ LATE_THOUGHT_LEADERS: list[dict[str, object]] = [
     {"name": "Geoffrey Litt", "url": "https://www.geoffreylitt.com/feed.xml", "type": "rss", "tier": 1, "refresh_hours": 24},
     {"name": "Mitchell Hashimoto", "url": "https://mitchellh.com/feed.xml", "type": "rss", "tier": 1, "refresh_hours": 24},
     {"name": "Sean Goedecke", "url": "https://www.seangoedecke.com/rss.xml", "type": "rss", "tier": 1, "refresh_hours": 24},
+    {"name": "Cat Wu", "url": "https://x.com/_catwu", "type": "web", "tier": 1, "refresh_hours": 24},
+    {"name": "Lulu Cheng Meservey", "url": "https://x.com/lulumeservey", "type": "web", "tier": 1, "refresh_hours": 24},
 ]
 
 RSS_FEEDS: list[dict[str, object]] = FRONT + YOUTUBE_FRONT + UPSTREAM_BUILDERS + FAST_HIGH_SIGNAL + PODCASTS_RSS + PODCASTS_WEB + SLOW_RESEARCH + LATE_THOUGHT_LEADERS
 
+
+def _select_sources(names: list[str]) -> list[dict[str, object]]:
+    pool = {str(item.get("name", "")).strip(): item for item in RSS_FEEDS}
+    return [pool[name] for name in names if name in pool]
+
+
+# A more editorial / balanced blend for daily reading:
+# enough breadth to feel rich, but fewer noisy overlaps than the full fast set.
+BALANCED: list[dict[str, object]] = _select_sources([
+    "Google DeepMind Blog",
+    "Google AI Blog",
+    "NVIDIA Blog",
+    "a16z Enterprise x AI",
+    "Sequoia Capital",
+    "Stratechery",
+    "Follow Builders X Feed",
+    "Follow Builders Podcasts Feed",
+    "Simon Willison",
+    "Dwarkesh Patel",
+    "Geoffrey Litt",
+    "Sean Goedecke",
+])
+
+BALANCED_PLUS: list[dict[str, object]] = BALANCED + _select_sources([
+    "Hacker News",
+    "YC Blog",
+    "AI Builders",
+    "Lex Fridman Podcast",
+    "Lenny's Podcast",
+    "Cat Wu",
+    "Lulu Cheng Meservey",
+])
+
+# A focused group around AI-native product building, Anthropic / Claude, and
+# concrete product / application lessons we can directly reuse.
+AI_NATIVE_PRODUCT: list[dict[str, object]] = _select_sources([
+    "Anthropic News",
+    "Anthropic Research",
+    "Anthropic Engineering",
+    "Claude Blog",
+    "Amanda Askell",
+    "Cat Wu",
+    "Lenny's Podcast",
+    "Lex Fridman Podcast",
+    "Lenny's Newsletter",
+]) + [
+    {"name": "Anthropic AI", "url": "https://x.com/AnthropicAI", "type": "web", "tier": 1, "refresh_hours": 24},
+    {"name": "Dario Amodei", "url": "https://x.com/DarioAmodei", "type": "web", "tier": 1, "refresh_hours": 24},
+]
+
 # Cloud Run default: a compact but high-signal batch that is practical for scheduled jobs.
-CLOUDRUN: list[dict[str, object]] = FRONT + YOUTUBE_FRONT + UPSTREAM_BUILDERS + FAST_HIGH_SIGNAL
+CLOUDRUN: list[dict[str, object]] = BALANCED
 
 DEFAULT_ITEMS_PER_FEED = 5
 
@@ -125,6 +182,9 @@ SOURCE_GROUPS: dict[str, list[dict[str, object]]] = {
     "youtube": YOUTUBE_FRONT,
     "upstream": UPSTREAM_BUILDERS,
     "fast": FAST_HIGH_SIGNAL,
+    "balanced": BALANCED,
+    "balanced_plus": BALANCED_PLUS,
+    "ai_native_product": AI_NATIVE_PRODUCT,
     "podcasts": PODCASTS_RSS + PODCASTS_WEB,
     "podcasts_rss": PODCASTS_RSS,
     "podcasts_web": PODCASTS_WEB,

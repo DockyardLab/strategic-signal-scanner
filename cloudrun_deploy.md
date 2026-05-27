@@ -36,7 +36,7 @@ MAX_ARTICLES=30
 MAX_AGE_DAYS=180
 REPORT_MAX_AGE_DAYS=180
 OUTPUT_DIR=/tmp/artifacts/rss
-ARCHIVE_BUCKET=your-bucket-name
+ARCHIVE_BUCKET=YOUR_BUCKET_NAME
 ARCHIVE_PREFIX=signal-archive
 ```
 
@@ -52,7 +52,7 @@ The Cloud Run job currently supports two backends:
 For the Cloud Run deployment we use Vertex AI, so the job needs:
 
 - `GEMINI_BACKEND=vertex`
-- `GEMINI_PROJECT=strategic-signal-scanner`
+- `GEMINI_PROJECT=YOUR_PROJECT_ID`
 - `GEMINI_LOCATION=global`
 - `GEMINI_MODEL=gemini-2.5-flash-lite`
 
@@ -66,8 +66,8 @@ Recommended environment variables:
 
 ```bash
 MAIL_BACKEND=smtp
-MAIL_TO=rosy.luo@raygen.ai
-MAIL_FROM='Rosy <your-gmail-address@example.com>'
+MAIL_TO=YOUR_RECIPIENT_EMAIL
+MAIL_FROM='Strategic Signal Scanner <your-gmail-address@example.com>'
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USE_TLS=true
@@ -80,7 +80,7 @@ Notes:
 - For Gmail, the simplest path is an **App Password**.
 - Keep `SMTP_PASSWORD` in Secret Manager instead of plain text.
 - The Job will skip email safely if `MAIL_TO` is not set.
-- The message body uses the `Rosy` signature.
+- The message body uses a neutral project signature.
 
 Recommended secret setup:
 
@@ -117,13 +117,13 @@ all stay linkable to each other.
 If the bucket is made public, the archive can be accessed directly with:
 
 ```text
-https://storage.googleapis.com/strategic-signal-scanner-archive/signal-archive/archive_index.html
+https://storage.googleapis.com/YOUR_BUCKET_NAME/signal-archive/archive_index.html
 ```
 
 and each daily report:
 
 ```text
-https://storage.googleapis.com/strategic-signal-scanner-archive/signal-archive/report_YYYY-MM-DD.html
+https://storage.googleapis.com/YOUR_BUCKET_NAME/signal-archive/report_YYYY-MM-DD.html
 ```
 
 ## Deploy from source
@@ -139,7 +139,7 @@ gcloud run jobs deploy strategic-signal-scanner \
   --region asia-east1 \
   --task-timeout 3600 \
   --max-retries 1 \
-  --set-env-vars RUN_GROUP=cloudrun,SCORE_MODE=gemini,GEMINI_MODEL=gemini-3.1-flash-lite-preview,ITEMS_PER_FEED=1,MAX_ARTICLES=30,MAX_AGE_DAYS=180,REPORT_MAX_AGE_DAYS=180,OUTPUT_DIR=/tmp/artifacts/rss,ARCHIVE_BUCKET=YOUR_BUCKET,ARCHIVE_PREFIX=signal-archive \
+  --set-env-vars RUN_GROUP=cloudrun,SCORE_MODE=gemini,GEMINI_MODEL=gemini-3.1-flash-lite-preview,ITEMS_PER_FEED=1,MAX_ARTICLES=30,MAX_AGE_DAYS=180,REPORT_MAX_AGE_DAYS=180,OUTPUT_DIR=/tmp/artifacts/rss,ARCHIVE_BUCKET=YOUR_BUCKET_NAME,ARCHIVE_PREFIX=signal-archive \
   --set-secrets GEMINI_API_KEY=YOUR_GEMINI_SECRET:latest
 ```
 
@@ -160,7 +160,7 @@ The recommended cadence is:
 The Cloud Scheduler job should call the Cloud Run Jobs `:run` endpoint:
 
 ```text
-https://run.googleapis.com/v2/projects/strategic-signal-scanner/locations/asia-east1/jobs/strategic-signal-scanner:run
+https://run.googleapis.com/v2/projects/YOUR_PROJECT_ID/locations/asia-east1/jobs/strategic-signal-scanner:run
 ```
 
 Use a dedicated scheduler service account with `roles/run.invoker` on the job.
@@ -175,16 +175,16 @@ gcloud iam service-accounts create signal-archive-scheduler \
 
 gcloud run jobs add-iam-policy-binding strategic-signal-scanner \
   --region asia-east1 \
-  --member="serviceAccount:signal-archive-scheduler@strategic-signal-scanner.iam.gserviceaccount.com" \
+  --member="serviceAccount:signal-archive-scheduler@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/run.invoker"
 
 gcloud scheduler jobs create http strategic-signal-scanner-schedule \
   --location asia-east1 \
   --schedule="0 9 * * 2,5" \
   --time-zone="Asia/Shanghai" \
-  --uri="https://run.googleapis.com/v2/projects/strategic-signal-scanner/locations/asia-east1/jobs/strategic-signal-scanner:run" \
+  --uri="https://run.googleapis.com/v2/projects/YOUR_PROJECT_ID/locations/asia-east1/jobs/strategic-signal-scanner:run" \
   --http-method POST \
-  --oauth-service-account-email="signal-archive-scheduler@strategic-signal-scanner.iam.gserviceaccount.com" \
+  --oauth-service-account-email="signal-archive-scheduler@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
   --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
 ```
 
