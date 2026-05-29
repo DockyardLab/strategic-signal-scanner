@@ -23,6 +23,7 @@ from signal_replay import (
     _load_system_instruction,
     _print_report,
 )
+from feedback import apply_feedback_adjustment, load_feedback
 
 
 LOCAL_TZ = timezone(timedelta(hours=8))
@@ -100,6 +101,7 @@ def main() -> int:
         print("No usable items found in raw file.", file=sys.stderr)
         return 1
 
+    feedback_state, _ = load_feedback(REPO_DIR)
     results = []
     scored_items: list[dict[str, Any]] = []
     total = len(raw_items)
@@ -133,10 +135,13 @@ def main() -> int:
             debug_response=args.debug_response,
             retry_attempts=args.retry_attempts,
         )
+        feedback_patch = apply_feedback_adjustment(item, feedback_state)
+        actual = _apply_feedback_to_analysis(actual, feedback_patch)
         results.append(_compare(sample.get("id") or f"raw_{index:02d}", {}, actual))
 
         merged = dict(item)
         merged["analysis"] = actual
+        merged["feedback_id"] = feedback_patch.get("feedback_id", "")
         scored_items.append(merged)
 
     if args.print_prompt:
@@ -195,6 +200,32 @@ def main() -> int:
     else:
         print(f"No items reached the min score threshold of {args.min_score}.", flush=True)
     return 0
+
+
+def _apply_feedback_to_analysis(analysis: dict[str, Any], feedback_patch: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(analysis)
+    score = int(merged.get("relevance_score", 0))
+    adjustment = int(feedback_patch.get("feedback_adjustment", 0))
+    status = str(feedback_patch.get("feedback_status") or "neutral")
+    note = str(feedback_patch.get("feedback_note") or "")
+    hidden = bool(feedback_patch.get("feedback_hidden"))
+
+    if hidden:
+        score = 0
+    else:
+        score = max(0, min(5, score + adjustment))
+
+    merged["relevance_score"] = score
+    merged["feedback_id"] = str(feedback_patch.get("feedback_id") or "")
+    merged["feedback_status"] = status
+    merged["feedback_adjustment"] = adjustment
+    merged["feedback_note"] = note
+    merged["feedback_hidden"] = hidden
+    if hidden:
+        merged["relevance_reason"] = f"{merged.get('relevance_reason', '')}（你已标记为不相关）".strip()
+    elif note:
+        merged["relevance_reason"] = f"{merged.get('relevance_reason', '')}（{note}）".strip()
+    return merged
 
 
 if __name__ == "__main__":

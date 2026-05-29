@@ -32,6 +32,7 @@ def main() -> int:
     ignore_state = _env_bool("IGNORE_STATE", False)
     report_max_age_days = _env("REPORT_MAX_AGE_DAYS", max_age_days)
     state_path = REPO_DIR / "artifacts" / "rss" / "state.json"
+    feedback_path = REPO_DIR / "artifacts" / "rss" / "feedback.json"
 
     print("Cloud Run Job started.", flush=True)
     print(f"  output_dir={output_dir}", flush=True)
@@ -44,6 +45,7 @@ def main() -> int:
 
     if bucket:
         _download_state_from_bucket(bucket, prefix, state_path)
+        _download_feedback_from_bucket(bucket, prefix, feedback_path)
 
     capture_cmd = [
         sys.executable,
@@ -71,6 +73,7 @@ def main() -> int:
     if bucket:
         _sync_archive_history_from_bucket(bucket, prefix, output_dir)
         _mirror_state_into_output_dir(state_path, output_dir)
+        _mirror_feedback_into_output_dir(feedback_path, output_dir)
 
     scored_files = sorted(output_dir.glob("scored_*.json"), key=lambda p: p.stat().st_mtime)
     if not scored_files:
@@ -179,6 +182,29 @@ def _mirror_state_into_output_dir(state_path: Path, output_dir: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(state_path, target)
     print(f"Mirrored state into {target}", flush=True)
+
+
+def _download_feedback_from_bucket(bucket_name: str, prefix: str, feedback_path: Path) -> None:
+    client = _storage_client()
+    bucket = client.bucket(bucket_name)
+    blob_name = f"{prefix}/feedback.json" if prefix else "feedback.json"
+    blob = bucket.get_blob(blob_name)
+    if blob is None:
+        print(f"No remote feedback found at gs://{bucket_name}/{blob_name}; starting fresh.", flush=True)
+        return
+
+    feedback_path.parent.mkdir(parents=True, exist_ok=True)
+    blob.download_to_filename(str(feedback_path))
+    print(f"Downloaded feedback state from gs://{bucket_name}/{blob_name}", flush=True)
+
+
+def _mirror_feedback_into_output_dir(feedback_path: Path, output_dir: Path) -> None:
+    if not feedback_path.exists():
+        return
+    target = output_dir / "feedback.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(feedback_path, target)
+    print(f"Mirrored feedback into {target}", flush=True)
 
 
 def _sync_archive_history_from_bucket(bucket_name: str, prefix: str, output_dir: Path) -> None:

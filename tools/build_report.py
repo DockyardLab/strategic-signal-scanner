@@ -7,14 +7,21 @@ import argparse
 import html
 import json
 import re
+import sys
 from collections import Counter, OrderedDict
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 LOCAL_TZ = timezone(timedelta(hours=8))
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_DIR = SCRIPT_DIR.parent
+if str(REPO_DIR) not in sys.path:
+    sys.path.insert(0, str(REPO_DIR))
+
+from feedback import FeedbackState, apply_feedback_adjustment, feedback_base_url_from_env, feedback_identity, load_feedback
+
 DEFAULT_ARTIFACT_DIR = REPO_DIR / "artifacts" / "rss"
 
 
@@ -45,6 +52,8 @@ def main() -> int:
     args = parse_args()
     scored_path = _resolve_scored_file(args.scored_file)
     payload = json.loads(scored_path.read_text(encoding="utf-8"))
+    feedback_state, _ = load_feedback(REPO_DIR)
+    feedback_base_url = feedback_base_url_from_env()
 
     items = payload.get("high_signal_items") or _fallback_high_signal_items(payload.get("items") or [])
     report_date = _infer_report_date(payload, scored_path)
@@ -58,6 +67,8 @@ def main() -> int:
         report_date,
         max(0, args.max_age_days),
         hidden_old_count,
+        feedback_state,
+        feedback_base_url,
     )
     html_text = _apply_long_table_theme(html_text)
 
@@ -114,6 +125,8 @@ def _build_report_html(
     report_date: str,
     max_age_days: int,
     hidden_old_count: int,
+    feedback_state: FeedbackState,
+    feedback_base_url: str,
 ) -> str:
     count = int(payload.get("count") or len(payload.get("items") or []))
     high_signal_count = len(items)
@@ -124,7 +137,16 @@ def _build_report_html(
 
     lead = _lead_sentence(items, max_age_days)
 
-    cards = "\n".join(_render_item_card(item, rank=index + 1) for index, item in enumerate(items))
+    cards = "\n".join(
+        _render_item_card(
+            item,
+            rank=index + 1,
+            report_date=report_date,
+            feedback_state=feedback_state,
+            feedback_base_url=feedback_base_url,
+        )
+        for index, item in enumerate(items)
+    )
     source_badges = "\n".join(
         f'<span class="pill pill-blue">{_escape(name)} · {count}</span>' for name, count in source_counts.items()
     ) or '<span class="pill">无</span>'
@@ -319,6 +341,48 @@ def _build_report_html(
       color: var(--blue); font-weight: 700; font-size: 14px;
       padding: 8px 12px; border-radius: 12px; background: rgba(29,78,216,.06);
     }}
+    .feedback {{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(181,61,42,.12);
+      padding-top: 12px;
+      margin-top: 4px;
+    }}
+    .feedback-actions {{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }}
+    .feedback a {{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      text-decoration:none;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(181,61,42,.22);
+      background: #fffaf3;
+      color: var(--ink-dp);
+    }}
+    .feedback a.like {{
+      background: #edf7ef;
+      border-color: rgba(37, 99, 72, .22);
+      color: #166534;
+    }}
+    .feedback a.dislike {{
+      background: #fdf2f2;
+      border-color: rgba(185, 28, 28, .22);
+      color: #b91c1c;
+    }}
+    .feedback-status {{
+      font-size: 12px;
+      color: var(--muted-2);
+    }}
     .footer {{
       margin-top: 18px; padding: 14px 18px; color: var(--muted-2); font-size: 13px;
       text-align: center;
@@ -400,7 +464,13 @@ def _build_report_html(
 """
 
 
-def _render_item_card(item: dict[str, Any], rank: int) -> str:
+def _render_item_card(
+    item: dict[str, Any],
+    rank: int,
+    report_date: str,
+    feedback_state: FeedbackState,
+    feedback_base_url: str,
+) -> str:
     analysis = _analysis(item)
     score = int(analysis.get("relevance_score", 0))
     score_class = "pill-amber" if score >= 5 else "pill-blue" if score >= 4 else "pill-green"
@@ -414,6 +484,9 @@ def _render_item_card(item: dict[str, Any], rank: int) -> str:
     summary = str(analysis.get("summary_zh") or "")
     published = str(item.get("published") or item.get("date") or analysis.get("date") or "")
     age_label = _age_label(published)
+    feedback_patch = apply_feedback_adjustment(item, feedback_state)
+    feedback_status = str(feedback_patch.get("feedback_status") or "neutral")
+    feedback_bar = _render_feedback_bar(item, feedback_base_url, feedback_status, published, report_date)
 
     action_html = f'<div class="action"><strong>建议动作：</strong>{_escape(action)}</div>' if action else ""
     summary_html = f'<div class="summary-box"><strong>一句话摘要：</strong>{_escape(summary)}</div>' if summary else ""
@@ -442,6 +515,7 @@ def _render_item_card(item: dict[str, Any], rank: int) -> str:
           <summary>打开 Report · 查看与我方业务相关性</summary>
           {detail_html}
         </details>
+        {feedback_bar}
         <div class="links"><a href="{_escape(url)}" target="_blank" rel="noreferrer">打开原文</a></div>
       </div>
     """
@@ -486,6 +560,50 @@ def _render_item_detail(item: dict[str, Any], rank: int) -> str:
             <span>·</span>
             <span>Rank #{rank}</span>
           </div>
+    """
+
+
+def _render_feedback_bar(
+    item: dict[str, Any],
+    feedback_base_url: str,
+    feedback_status: str,
+    published: str,
+    report_date: str,
+) -> str:
+    if not feedback_base_url:
+        return '<div class="feedback-status">提示：设置 `FEEDBACK_BASE_URL` 后可启用这条反馈接口。</div>'
+
+    title = str(item.get("title") or item.get("analysis", {}).get("title") or "未命名")
+    source = str(item.get("source") or item.get("analysis", {}).get("source") or "未知")
+    url = str(item.get("url") or item.get("analysis", {}).get("url") or "")
+    item_id = str(item.get("feedback_id") or feedback_identity(item))
+    base_params = {
+        "item_id": item_id,
+        "title": title,
+        "source": source,
+        "url": url,
+        "published": published,
+        "report_date": report_date,
+        "return_to": "",
+    }
+    like_url = f"{feedback_base_url}/feedback?{urlencode({**base_params, 'vote': 'like'})}"
+    dislike_url = f"{feedback_base_url}/feedback?{urlencode({**base_params, 'vote': 'dislike'})}"
+
+    status_text = {
+        "liked": "你已经标记为喜欢",
+        "source-liked": "这个来源之前被你多次喜欢",
+        "disliked": "你已经标记为不相关",
+        "source-disliked": "这个来源之前被你多次标记不相关",
+    }.get(feedback_status, "可以给这条信号一个反馈，帮助下次更准。")
+
+    return f"""
+      <div class="feedback">
+        <div class="feedback-actions">
+          <a class="like" href="{_escape(like_url)}">喜欢这篇</a>
+          <a class="dislike" href="{_escape(dislike_url)}">不相关</a>
+        </div>
+        <div class="feedback-status">{_escape(status_text)}</div>
+      </div>
     """
 
 

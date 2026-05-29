@@ -34,6 +34,21 @@ This project is built around the Google Cloud stack:
 - **Cloud Storage** for report and archive persistence
 - **Cloud Scheduler** for timed execution
 
+## Feedback loop
+
+The HTML report includes feedback links for each item when `FEEDBACK_BASE_URL` is set.
+
+- `like` increases the chance that similar items stay visible
+- `dislike` hides the item from future reports and downranks similar content
+
+The feedback service writes to `artifacts/rss/feedback.json` and can sync that state to Cloud Storage alongside the reports.
+
+Typical setup:
+
+```bash
+FEEDBACK_BASE_URL=https://your-feedback-service-url
+```
+
 ## Repository layout
 
 - `tools/capture_and_score.py`: one-command capture + scoring pipeline
@@ -42,6 +57,7 @@ This project is built around the Google Cloud stack:
 - `tools/build_report.py`: render HTML report
 - `tools/build_archive.py`: render browsable archive
 - `tools/cloudrun_job.py`: Google Cloud Run Job entrypoint
+- `tools/feedback_service.py`: lightweight feedback collector for report clicks
 - `tools/signal_replay.py`: local replay and evaluation helper
 - `tools/youtube_to_raw.py`: convert a YouTube transcript into a raw scanner item
 - `cloudrun/`: Google Cloud Run-specific docs

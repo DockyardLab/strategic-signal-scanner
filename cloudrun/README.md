@@ -12,6 +12,7 @@ Cloud Run runs the batch workflow on a schedule:
 4. rebuild the archive index
 5. upload artifacts to Cloud Storage
 6. optionally send an email summary
+7. record reader feedback when `FEEDBACK_BASE_URL` is configured
 
 ## Default Cloud Run group
 
@@ -36,7 +37,14 @@ REPORT_MAX_AGE_DAYS=180
 OUTPUT_DIR=/tmp/artifacts/rss
 ARCHIVE_BUCKET=your-bucket-name
 ARCHIVE_PREFIX=signal-archive
+FEEDBACK_BASE_URL=https://your-feedback-service-url
 ```
+
+## Feedback service
+
+If you want the report buttons to record `like` / `dislike` clicks, deploy the companion feedback service from `tools/feedback_service.py`.
+
+The service stores its state in `artifacts/rss/feedback.json` and, when `ARCHIVE_BUCKET` is set, mirrors that file into Cloud Storage.
 
 ## Switch groups
 

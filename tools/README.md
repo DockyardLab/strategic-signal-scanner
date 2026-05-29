@@ -10,6 +10,7 @@ This folder contains the runnable implementation scripts for Strategic Signal Sc
 - `build_report.py`: render the daily HTML report
 - `build_archive.py`: render the browsable archive index
 - `cloudrun_job.py`: Google Cloud Run Job entrypoint
+- `feedback_service.py`: lightweight HTTP endpoint for recording like/dislike feedback
 - `signal_replay.py`: local replay and evaluation helper
 - `youtube_to_raw.py`: convert a YouTube transcript into a raw scanner item
 
