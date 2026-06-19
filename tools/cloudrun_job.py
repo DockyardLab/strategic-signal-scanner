@@ -10,11 +10,12 @@ import sys
 import shutil
 from pathlib import Path
 
-from mailer import send_notification_email
-
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_DIR = SCRIPT_DIR.parent
+if str(REPO_DIR) not in sys.path:
+    sys.path.insert(0, str(REPO_DIR))
+
+from mailer import send_notification_email
 
 
 def main() -> int:
