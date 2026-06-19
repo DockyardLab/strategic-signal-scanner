@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from html import escape
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -34,6 +35,7 @@ class FeedbackHandler(BaseHTTPRequestHandler):
 
         params = {key: values[-1] for key, values in parse_qs(parsed.query, keep_blank_values=True).items() if values}
         try:
+            _validate_token(params)
             item = _item_from_params(params)
             vote = str(params.get("vote") or "").strip().lower()
             if vote not in {"like", "dislike"}:
@@ -53,11 +55,13 @@ class FeedbackHandler(BaseHTTPRequestHandler):
             redirect_target = (
                 str(params.get("return_to") or params.get("report_url") or "").strip()
                 or self.headers.get("Referer")
-                or "/healthz"
             )
-            self.send_response(HTTPStatus.FOUND)
-            self.send_header("Location", redirect_target)
-            self.end_headers()
+            if redirect_target:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", redirect_target)
+                self.end_headers()
+            else:
+                self._send_html(_success_page(entry), HTTPStatus.OK)
         except Exception as exc:  # noqa: BLE001
             self._send_text(f"feedback error: {exc}\n", HTTPStatus.BAD_REQUEST)
 
@@ -72,6 +76,14 @@ class FeedbackHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def _send_html(self, body: str, status: HTTPStatus) -> None:
+        payload = body.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
 
 def _item_from_params(params: dict[str, str]) -> dict[str, Any]:
     return {
@@ -81,6 +93,42 @@ def _item_from_params(params: dict[str, str]) -> dict[str, Any]:
         "published": params.get("published", ""),
         "analysis": {"source": params.get("source", ""), "title": params.get("title", ""), "url": params.get("url", "")},
     }
+
+
+def _validate_token(params: dict[str, str]) -> None:
+    expected = os.getenv("FEEDBACK_TOKEN", "").strip()
+    if not expected:
+        return
+    supplied = str(params.get("token") or "").strip()
+    if supplied != expected:
+        raise PermissionError("invalid feedback token")
+
+
+def _success_page(entry: dict[str, Any]) -> str:
+    vote_label = "喜欢" if entry.get("vote") == "like" else "不相关"
+    title = str(entry.get("title") or "这条信号")
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>反馈已记录</title>
+  <style>
+    body {{ margin: 0; min-height: 100vh; display: grid; place-items: center; background: #fffef8; color: #292827; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }}
+    main {{ max-width: 560px; margin: 24px; padding: 28px; border: 1px solid #eadbca; border-radius: 24px; background: #fffaf3; box-shadow: 0 18px 50px rgba(84, 60, 39, .12); }}
+    h1 {{ margin: 0 0 10px; font-size: 28px; }}
+    p {{ margin: 8px 0; line-height: 1.7; color: #6f655c; }}
+    strong {{ color: #a14632; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>反馈已记录</h1>
+    <p>你把 <strong>{escape(title)}</strong> 标记为：<strong>{vote_label}</strong>。</p>
+    <p>下一次生成 report 时，系统会用这条文章级反馈调整排序和过滤。</p>
+  </main>
+</body>
+</html>"""
 
 
 def _upload_feedback(feedback_path: Path) -> None:

@@ -41,12 +41,15 @@ The HTML report includes feedback links for each item when `FEEDBACK_BASE_URL` i
 - `like` increases the chance that similar items stay visible
 - `dislike` hides the item from future reports and downranks similar content
 
-The feedback service writes to `artifacts/rss/feedback.json` and can sync that state to Cloud Storage alongside the reports.
+The feedback service writes article-level decisions to `artifacts/rss/feedback.json` and can sync that state to Cloud Storage alongside the reports. The next scheduled run downloads that state before Gemini scoring, then applies your preferences as a lightweight relevance memory.
+
+This does not fine-tune Gemini itself. Gemini still scores the content, while the scanner uses your feedback to adjust visibility, ranking, and source-level priors over time.
 
 Typical setup:
 
 ```bash
 FEEDBACK_BASE_URL=https://your-feedback-service-url
+FEEDBACK_TOKEN=optional-shared-secret
 ```
 
 ## Repository layout

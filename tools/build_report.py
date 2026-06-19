@@ -20,7 +20,14 @@ REPO_DIR = SCRIPT_DIR.parent
 if str(REPO_DIR) not in sys.path:
     sys.path.insert(0, str(REPO_DIR))
 
-from feedback import FeedbackState, apply_feedback_adjustment, feedback_base_url_from_env, feedback_identity, load_feedback
+from feedback import (
+    FeedbackState,
+    apply_feedback_adjustment,
+    feedback_base_url_from_env,
+    feedback_identity,
+    feedback_token_from_env,
+    load_feedback,
+)
 
 DEFAULT_ARTIFACT_DIR = REPO_DIR / "artifacts" / "rss"
 
@@ -54,6 +61,7 @@ def main() -> int:
     payload = json.loads(scored_path.read_text(encoding="utf-8"))
     feedback_state, _ = load_feedback(REPO_DIR)
     feedback_base_url = feedback_base_url_from_env()
+    feedback_token = feedback_token_from_env()
 
     items = payload.get("high_signal_items") or _fallback_high_signal_items(payload.get("items") or [])
     report_date = _infer_report_date(payload, scored_path)
@@ -69,6 +77,7 @@ def main() -> int:
         hidden_old_count,
         feedback_state,
         feedback_base_url,
+        feedback_token,
     )
     html_text = _apply_long_table_theme(html_text)
 
@@ -127,6 +136,7 @@ def _build_report_html(
     hidden_old_count: int,
     feedback_state: FeedbackState,
     feedback_base_url: str,
+    feedback_token: str,
 ) -> str:
     count = int(payload.get("count") or len(payload.get("items") or []))
     high_signal_count = len(items)
@@ -144,6 +154,7 @@ def _build_report_html(
             report_date=report_date,
             feedback_state=feedback_state,
             feedback_base_url=feedback_base_url,
+            feedback_token=feedback_token,
         )
         for index, item in enumerate(items)
     )
@@ -440,7 +451,7 @@ def _build_report_html(
       <div class="section-head">
         <div>
           <h2>信号分布</h2>
-          <p class="sub">这页只展示 3 分以上的内容，低分噪声默认不打扰你。</p>
+          <p class="sub">按来源和内容类型汇总本期信号。</p>
         </div>
       </div>
       <div class="chips" style="margin-bottom: 10px;">{source_badges}</div>
@@ -470,6 +481,7 @@ def _render_item_card(
     report_date: str,
     feedback_state: FeedbackState,
     feedback_base_url: str,
+    feedback_token: str,
 ) -> str:
     analysis = _analysis(item)
     score = int(analysis.get("relevance_score", 0))
@@ -486,7 +498,7 @@ def _render_item_card(
     age_label = _age_label(published)
     feedback_patch = apply_feedback_adjustment(item, feedback_state)
     feedback_status = str(feedback_patch.get("feedback_status") or "neutral")
-    feedback_bar = _render_feedback_bar(item, feedback_base_url, feedback_status, published, report_date)
+    feedback_bar = _render_feedback_bar(item, feedback_base_url, feedback_token, feedback_status, published, report_date)
 
     action_html = f'<div class="action"><strong>建议动作：</strong>{_escape(action)}</div>' if action else ""
     summary_html = f'<div class="summary-box"><strong>一句话摘要：</strong>{_escape(summary)}</div>' if summary else ""
@@ -566,12 +578,13 @@ def _render_item_detail(item: dict[str, Any], rank: int) -> str:
 def _render_feedback_bar(
     item: dict[str, Any],
     feedback_base_url: str,
+    feedback_token: str,
     feedback_status: str,
     published: str,
     report_date: str,
 ) -> str:
     if not feedback_base_url:
-        return '<div class="feedback-status">提示：设置 `FEEDBACK_BASE_URL` 后可启用这条反馈接口。</div>'
+        return ""
 
     title = str(item.get("title") or item.get("analysis", {}).get("title") or "未命名")
     source = str(item.get("source") or item.get("analysis", {}).get("source") or "未知")
@@ -586,6 +599,8 @@ def _render_feedback_bar(
         "report_date": report_date,
         "return_to": "",
     }
+    if feedback_token:
+        base_params["token"] = feedback_token
     like_url = f"{feedback_base_url}/feedback?{urlencode({**base_params, 'vote': 'like'})}"
     dislike_url = f"{feedback_base_url}/feedback?{urlencode({**base_params, 'vote': 'dislike'})}"
 

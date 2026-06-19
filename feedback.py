@@ -163,6 +163,13 @@ def feedback_base_url_from_env(default: str = "") -> str:
     return value.strip().rstrip("/")
 
 
+def feedback_token_from_env(default: str = "") -> str:
+    import os
+
+    value = os.getenv("FEEDBACK_TOKEN", default)
+    return value.strip()
+
+
 def _state_from_payload(payload: dict[str, Any]) -> FeedbackState:
     decisions = payload.get("decisions") or {}
     history = payload.get("history") or payload.get("entries") or []
