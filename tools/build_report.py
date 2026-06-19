@@ -390,6 +390,24 @@ def _build_report_html(
       border-color: rgba(185, 28, 28, .22);
       color: #b91c1c;
     }}
+    .feedback a.is-selected {{
+      box-shadow: 0 8px 20px rgba(84, 60, 39, .12);
+      transform: translateY(-1px);
+    }}
+    .feedback a.like.is-selected {{
+      background: #166534;
+      border-color: #166534;
+      color: #fff;
+    }}
+    .feedback a.dislike.is-selected {{
+      background: #b91c1c;
+      border-color: #b91c1c;
+      color: #fff;
+    }}
+    .feedback a.is-pending {{
+      opacity: .64;
+      pointer-events: none;
+    }}
     .feedback-status {{
       font-size: 12px;
       color: var(--muted-2);
@@ -470,6 +488,43 @@ def _build_report_html(
 
     <div class="footer">报告来源：{_escape(str(payload.get("source_file") or scored_path.name))} · 生成时间：{_escape(str(payload.get("scored_at") or ""))} · 已过滤近 {max_age_days} 天外的内容</div>
   </div>
+  <script>
+    document.addEventListener('click', async function (event) {{
+      const target = event.target.closest('[data-feedback-vote]');
+      if (!target) return;
+      event.preventDefault();
+
+      const feedback = target.closest('.feedback');
+      const status = feedback ? feedback.querySelector('.feedback-status') : null;
+      const actions = feedback ? feedback.querySelectorAll('[data-feedback-vote]') : [];
+      const vote = target.getAttribute('data-feedback-vote');
+
+      actions.forEach(function (item) {{
+        item.classList.remove('is-selected');
+        item.classList.add('is-pending');
+      }});
+      if (status) status.textContent = '正在记录反馈...';
+
+      try {{
+        const response = await fetch(target.href, {{ method: 'GET', mode: 'cors', credentials: 'omit' }});
+        if (!response.ok) throw new Error('feedback request failed');
+        actions.forEach(function (item) {{
+          item.classList.remove('is-pending');
+        }});
+        target.classList.add('is-selected');
+        if (status) {{
+          status.textContent = vote === 'like'
+            ? '已记录：这条对你有用。下一次 report 会参考这个判断。'
+            : '已记录：这条不相关。下一次会降低类似内容权重。';
+        }}
+      }} catch (error) {{
+        actions.forEach(function (item) {{
+          item.classList.remove('is-pending');
+        }});
+        if (status) status.textContent = '这次没有记录成功，可以稍后再点一次。';
+      }}
+    }});
+  </script>
 </body>
 </html>
 """
@@ -614,8 +669,8 @@ def _render_feedback_bar(
     return f"""
       <div class="feedback">
         <div class="feedback-actions">
-          <a class="like" href="{_escape(like_url)}">喜欢这篇</a>
-          <a class="dislike" href="{_escape(dislike_url)}">不相关</a>
+          <a class="like" href="{_escape(like_url)}" data-feedback-vote="like" aria-label="标记这条信号有用">↑ 有用</a>
+          <a class="dislike" href="{_escape(dislike_url)}" data-feedback-vote="dislike" aria-label="标记这条信号不相关">↓ 不相关</a>
         </div>
         <div class="feedback-status">{_escape(status_text)}</div>
       </div>

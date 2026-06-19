@@ -24,6 +24,11 @@ from feedback import FeedbackState, load_feedback, record_feedback, save_feedbac
 class FeedbackHandler(BaseHTTPRequestHandler):
     server_version = "StrategicSignalFeedback/1.0"
 
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self._send_cors_headers()
+        self.end_headers()
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         if parsed.path == "/healthz":
@@ -52,10 +57,7 @@ class FeedbackHandler(BaseHTTPRequestHandler):
             saved_path = save_feedback(state, REPO_DIR)
             _upload_feedback(saved_path)
             print(f"Recorded feedback: {entry['vote']} for {entry['item_id']}", flush=True)
-            redirect_target = (
-                str(params.get("return_to") or params.get("report_url") or "").strip()
-                or self.headers.get("Referer")
-            )
+            redirect_target = str(params.get("return_to") or params.get("report_url") or "").strip()
             if redirect_target:
                 self.send_response(HTTPStatus.FOUND)
                 self.send_header("Location", redirect_target)
@@ -71,6 +73,7 @@ class FeedbackHandler(BaseHTTPRequestHandler):
     def _send_text(self, body: str, status: HTTPStatus) -> None:
         payload = body.encode("utf-8")
         self.send_response(status)
+        self._send_cors_headers()
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
@@ -79,10 +82,16 @@ class FeedbackHandler(BaseHTTPRequestHandler):
     def _send_html(self, body: str, status: HTTPStatus) -> None:
         payload = body.encode("utf-8")
         self.send_response(status)
+        self._send_cors_headers()
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+
+    def _send_cors_headers(self) -> None:
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
 
 def _item_from_params(params: dict[str, str]) -> dict[str, Any]:
