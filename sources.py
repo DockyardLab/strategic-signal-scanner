@@ -66,6 +66,7 @@ UPSTREAM_BUILDERS: list[dict[str, object]] = [
 ]
 
 FAST_HIGH_SIGNAL: list[dict[str, object]] = [
+    {"name": "Google Cloud Blog", "url": "https://cloud.google.com/blog/", "type": "web", "tier": 1, "refresh_hours": 24},
     {"name": "Google DeepMind Blog", "url": "https://deepmind.google/discover/blog/", "type": "web", "tier": 1, "refresh_hours": 24},
     {"name": "Google AI Blog", "url": "https://blog.google/technology/ai/", "type": "web", "tier": 1, "refresh_hours": 24},
     {"name": "NVIDIA Blog", "url": "https://blogs.nvidia.com/", "type": "web", "tier": 1, "refresh_hours": 24},
@@ -130,6 +131,7 @@ def _select_sources(names: list[str]) -> list[dict[str, object]]:
 # A more editorial / balanced blend for daily reading:
 # enough breadth to feel rich, but fewer noisy overlaps than the full fast set.
 BALANCED: list[dict[str, object]] = _select_sources([
+    "Google Cloud Blog",
     "Google DeepMind Blog",
     "Google AI Blog",
     "NVIDIA Blog",
