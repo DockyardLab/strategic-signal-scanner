@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -158,6 +159,11 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+    raw_items = _load_raw_items(raw_path)
+    if not raw_items:
+        scored_path = _write_empty_scored_file(raw_path, args.score_mode, args.model)
+        print(f"No new articles captured; empty scored file saved: {scored_path}", flush=True)
+        return 0
 
     score_cmd = [
         sys.executable,
@@ -180,6 +186,35 @@ def main() -> int:
     print(f"Step 2/2: scoring {raw_path.name} with mode={args.score_mode}...", flush=True)
     score_result = subprocess.run(score_cmd, cwd=str(SCRIPT_DIR))
     return score_result.returncode
+
+
+def _load_raw_items(raw_path: Path) -> list[dict]:
+    try:
+        payload = json.loads(raw_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Raw file is not valid JSON: {raw_path}") from exc
+    if not isinstance(payload, list):
+        raise ValueError(f"Raw file must contain a JSON list: {raw_path}")
+    return [item for item in payload if isinstance(item, dict)]
+
+
+def _write_empty_scored_file(raw_path: Path, score_mode: str, model: str) -> Path:
+    scored_name = raw_path.name.replace("raw_", "scored_", 1)
+    if scored_name == raw_path.name:
+        scored_name = f"scored_{datetime.now(LOCAL_TZ).strftime('%Y-%m-%d')}.json"
+    scored_path = raw_path.with_name(scored_name)
+    payload = {
+        "source_file": raw_path.name,
+        "scored_at": datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M"),
+        "mode": score_mode,
+        "model": model if score_mode == "gemini" else None,
+        "count": 0,
+        "items": [],
+        "high_signal_items": [],
+        "high_signal_count": 0,
+    }
+    scored_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return scored_path
 
 
 if __name__ == "__main__":
